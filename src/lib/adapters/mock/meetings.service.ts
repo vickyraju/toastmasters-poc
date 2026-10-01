@@ -374,6 +374,40 @@ export function meetingsService({ store, call }: Ctx): MeetingsService {
           return { ...m };
         }),
       ),
+    agendaOutline: (id) =>
+      call((sid) => {
+        const d = store.getState();
+        const { actor } = me(d, sid);
+        const m = meetingOf(d, id);
+        assertCan(actor, "meeting.view", { meetingStatus: m.status });
+        const slots = d.meetingRoles
+          .filter((s) => s.meetingId === id)
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+        let at = Date.parse(m.startsAt);
+        return d.agendaItems
+          .filter((i) => i.meetingTypeId === m.meetingTypeId)
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((i) => {
+            const row = {
+              id: i.id,
+              startsAt: new Date(at).toISOString(),
+              title: i.title,
+              durationMinutes: i.durationMinutes,
+              holders: slots
+                .filter(
+                  (s) =>
+                    i.roleTemplateId &&
+                    s.roleTemplateId === i.roleTemplateId &&
+                    s.memberId,
+                )
+                .map(
+                  (s) => d.members.find((x) => x.id === s.memberId)?.name ?? "",
+                ),
+            };
+            at += i.durationMinutes * 60_000;
+            return row;
+          });
+      }),
     uploadAgenda: (id, file: UploadFile) =>
       call((sid) =>
         mutate(store, (d) => {

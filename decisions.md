@@ -60,3 +60,14 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 - **Quick actions** follow design.md section 4 (Create meeting, Add member, Templates) plus flow.md J-02's President extras (Manage positions, Start vote). flow.md's "Assign role" quick action is the button on the Next meeting status card instead. Links point at screens built in later milestones.
 - **`isEligible` moved to `VoteSummary`** so Home can find open votes that need this member.
 - **Finalize from Home** asks for confirmation when roles are still open (R-07 "warn, allow anyway").
+
+## M5 (2026-10-01)
+
+- **Agenda outline times are derived from durations** (the schema stores durations only), so 2 Oct reads 4:00, 4:05, 4:08, 4:29, 4:44, 4:59, 5:09. mock-data.md 4.2 lists 4:30, 4:45, 5:00, 5:10, which needs 22 minutes for Prepared speeches, not 21. Cost if wrong: change one seed duration, or add a start time to `meeting_type_agenda_items`.
+- **New service method `meetings.agendaOutline(id)`**: the meeting type's agenda items timed from the meeting start, with the holders of each linked role. Types other than Regular have no seeded outline and show "This meeting type has no agenda outline."
+- **Placeholder agenda** `public/mock/agenda-sample.pdf` is generated (one page, the outline text) per R-14. PDFs are embedded with an iframe, images shown inline, DOCX offered as a download.
+- **Calendar weeks start on Monday**; the docs do not say. Below md the calendar becomes a list of that month's meetings (99-phone-variants). The calendar opens on the mock clock's month.
+- **S-03 type filter options come from the meetings themselves** (no meeting-types service until M7).
+- **S-04 header action bar (Edit, status changes, Cancel), the TMOD theme editor, agenda upload and all role actions are not on the page yet**; they belong to M6 to M8. Reports tab shows "Reports open after the meeting ends." before the end and the placeholder after it (M8).
+- **Meeting links render only if http(s)** (`safeHttpUrl`), so a stored `javascript:` link can never become clickable.
+- **Speaker details show Project and Level on separate rows.** "Set project timings" appears when a speaker has no min/max (R-04).

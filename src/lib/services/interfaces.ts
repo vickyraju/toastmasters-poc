@@ -107,6 +107,17 @@ export interface MeetingsService {
   setStatus(id: string, status: MeetingStatus): Promise<StatusResult>;
   publishTheme(id: string, input: ThemeInput): Promise<Meeting>;
   uploadAgenda(id: string, file: UploadFile): Promise<FileRecord>;
+  /** Template agenda for the meeting's type, timed from its start (meeting_type_agenda_items). */
+  agendaOutline(id: string): Promise<AgendaOutlineRow[]>;
+}
+
+export interface AgendaOutlineRow {
+  id: string;
+  startsAt: string;
+  title: string;
+  durationMinutes: number;
+  /** Holders of the linked role in this meeting, in slot order. */
+  holders: string[];
 }
 
 export interface RoleSlotView {

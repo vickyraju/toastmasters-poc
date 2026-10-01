@@ -629,3 +629,41 @@ describe("M4 Home data", () => {
     );
   });
 });
+
+describe("M5 agenda outline", () => {
+  it("2 Oct: seven rows timed from 4:00 PM IST with role holders", async () => {
+    await as("IL1009");
+    const rows = await s.meetings.agendaOutline(M2);
+    expect(
+      rows.map((r) => [
+        new Date(r.startsAt).toISOString().slice(11, 16),
+        r.title,
+        r.durationMinutes,
+      ]),
+    ).toEqual([
+      ["10:30", "Opening and TMOD intro", 5],
+      ["10:35", "Word of the day", 3],
+      ["10:38", "Prepared speeches", 21],
+      ["10:59", "Table Topics", 15],
+      ["11:14", "Evaluations", 15],
+      ["11:29", "Reports", 10],
+      ["11:39", "Close", 5],
+    ]);
+    expect(rows[0].holders).toEqual(["Ananya Das"]);
+    expect(rows[2].holders).toEqual([
+      "Mohammed Faisal",
+      "Lakshmi Narayanan",
+      "Meera Joshi",
+    ]);
+    expect(rows[4].holders).toEqual(["Nisha Pillai"]); // two evaluator slots are open
+  });
+  it("types without an outline return none; members cannot read a draft's outline", async () => {
+    await as("IL1003");
+    expect(await s.meetings.agendaOutline("mtg-2026-10-31")).toEqual([]);
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(await code(s.meetings.agendaOutline("mtg-2026-10-16"))).toBe(
+      "FORBIDDEN",
+    );
+  });
+});
