@@ -20,7 +20,7 @@ import {
   type Ctx,
 } from "./runtime";
 import { createSeed } from "./seed";
-import { tick } from "./tick";
+import { appendAudit, tick } from "./tick";
 import type { MockData } from "./state";
 
 const userOf = (d: MockData, id: string): CurrentUser => {
@@ -31,8 +31,7 @@ const userOf = (d: MockData, id: string): CurrentUser => {
 export function authService({ store, call }: Ctx): AuthService {
   return {
     signIn: (employeeId) =>
-      call((sid) => {
-        void sid;
+      call(() => {
         const id = employeeId.trim().toUpperCase();
         if (!id)
           throw new AppError("VALIDATION", "Enter your employee ID.", {
@@ -40,27 +39,43 @@ export function authService({ store, call }: Ctx): AuthService {
           });
         const d = store.getState();
         const m = d.members.find((x) => x.employeeId === id);
-        if (!m)
+        // flow.md J-01: unknown, inactive and removed IDs get the same message, so it does not reveal which IDs exist.
+        if (!m || m.status !== "active")
           throw new AppError(
             "NOT_FOUND",
             "We could not find that employee ID.",
           );
-        if (m.status !== "active")
-          throw new AppError(
-            "FORBIDDEN",
-            "This account is not active. Contact your VPE.",
-          );
         store.setState({ session: { memberId: m.id } });
         return userOf(store.getState(), m.id);
       }),
+    demoAccounts: () =>
+      call(
+        () => {
+          if (process.env.NEXT_PUBLIC_DEMO_MODE !== "true") return [];
+          const d = store.getState();
+          return d.members.map((m) => ({
+            employeeId: m.employeeId,
+            name: m.name,
+            position: actorOf(d, m.id).position,
+            status: m.status,
+          }));
+        },
+        { bypassError: true },
+      ),
+    // Session calls ignore "Simulate error" so the dev panel and Sign out stay reachable.
     signOut: () =>
-      call(() => void store.setState({ session: { memberId: null } })),
-    getCurrentUser: () =>
-      call((sid) => {
-        const d = store.getState();
-        const m = sid ? d.members.find((x) => x.id === sid) : undefined;
-        return m && m.status === "active" ? userOf(d, m.id) : null;
+      call(() => void store.setState({ session: { memberId: null } }), {
+        bypassError: true,
       }),
+    getCurrentUser: () =>
+      call(
+        (sid) => {
+          const d = store.getState();
+          const m = sid ? d.members.find((x) => x.id === sid) : undefined;
+          return m && m.status === "active" ? userOf(d, m.id) : null;
+        },
+        { bypassError: true },
+      ),
   };
 }
 
@@ -157,6 +172,24 @@ export function auditService({ store, call }: Ctx): AuditService {
           )
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       }),
+    recordDenied: (path) =>
+      call(
+        (sid) =>
+          mutate(store, (d) => {
+            const { actor } = me(d, sid);
+            appendAudit(
+              d,
+              actor.id,
+              "permission.denied",
+              "route",
+              path,
+              now(),
+              null,
+              { path },
+            );
+          }),
+        { bypassError: true },
+      ),
   };
 }
 
@@ -190,8 +223,13 @@ export function devService({ store, call }: Ctx): DevService {
         });
         runTick(store);
       }),
+    // Keeps the signed-in member so the dev panel stays open after a reset.
     reset: () =>
-      run(() => void store.setState(createSeed(mockStartMs()), true)),
+      run(() => {
+        const session = store.getState().session;
+        store.setState({ ...createSeed(mockStartMs()), session }, true);
+        runTick(store);
+      }),
     setSimulateError: (on) =>
       run(() =>
         mutate(store, (d) => {
@@ -211,5 +249,10 @@ export function devService({ store, call }: Ctx): DevService {
         }),
       ),
     tick: () => run(() => mutate(store, (d) => tick(d, now()))),
+    status: () =>
+      run(() => ({
+        now: now().toISOString(),
+        simulateError: store.getState().dev.simulateError,
+      })),
   };
 }

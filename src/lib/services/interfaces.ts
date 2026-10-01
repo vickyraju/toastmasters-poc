@@ -27,8 +27,17 @@ export interface Page<T> {
   total: number;
 }
 
+export interface DemoAccount {
+  employeeId: string;
+  name: string;
+  position: Position | null;
+  status: Member["status"];
+}
+
 export interface AuthService {
   signIn(employeeId: string): Promise<CurrentUser>;
+  /** Demo personas for the login page; empty unless NEXT_PUBLIC_DEMO_MODE=true (architecture.md section 5). */
+  demoAccounts(): Promise<DemoAccount[]>;
   signOut(): Promise<void>;
   getCurrentUser(): Promise<CurrentUser | null>;
 }
@@ -221,6 +230,8 @@ export interface AuditFilters {
 }
 export interface AuditService {
   list(filters?: AuditFilters): Promise<AuditEntry[]>;
+  /** G-05: log a route the signed-in member was not allowed to open. */
+  recordDenied(path: string): Promise<void>;
 }
 
 /** Demo-only controls behind the /dev panel (mock-data.md section 1). */
@@ -232,6 +243,7 @@ export interface DevService {
   setSimulateError(on: boolean): Promise<void>;
   sendTestNotification(): Promise<void>;
   tick(): Promise<void>;
+  status(): Promise<{ now: string; simulateError: boolean }>;
 }
 
 export interface Services {

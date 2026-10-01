@@ -96,6 +96,8 @@ export const AUDIT_ACTIONS = [
   "vote.close",
   "template.change",
   "settings.change",
+  // schema.md section 6: denied routes and calls are logged (G-05)
+  "permission.denied",
 ] as const;
 
 export const ERROR_CODES = [

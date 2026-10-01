@@ -24,19 +24,48 @@ beforeEach(() => {
 });
 
 describe("auth", () => {
-  it("failure messages", async () => {
-    await expect(s.auth.signIn("IL0000")).rejects.toMatchObject({
+  it("unknown, inactive and removed IDs get the same generic refusal (flow.md J-01)", async () => {
+    const refusal = {
+      code: "NOT_FOUND",
       message: "We could not find that employee ID.",
-    });
-    await expect(s.auth.signIn("IL1015")).rejects.toMatchObject({
-      message: "This account is not active. Contact your VPE.",
-    });
-    await expect(s.auth.signIn("IL1099")).rejects.toMatchObject({
-      message: "This account is not active. Contact your VPE.",
-    });
+    };
+    await expect(s.auth.signIn("IL0000")).rejects.toMatchObject(refusal);
+    await expect(s.auth.signIn("IL1015")).rejects.toMatchObject(refusal);
+    await expect(s.auth.signIn("IL1099")).rejects.toMatchObject(refusal);
     await expect(s.auth.signIn("  ")).rejects.toMatchObject({
       code: "VALIDATION",
     });
+  });
+  it("demo accounts only when NEXT_PUBLIC_DEMO_MODE=true", async () => {
+    const prev = process.env.NEXT_PUBLIC_DEMO_MODE;
+    process.env.NEXT_PUBLIC_DEMO_MODE = "false";
+    expect(await s.auth.demoAccounts()).toEqual([]);
+    process.env.NEXT_PUBLIC_DEMO_MODE = "true";
+    const list = await s.auth.demoAccounts();
+    expect(list).toHaveLength(16);
+    expect(list[0]).toEqual({
+      employeeId: "IL1001",
+      name: "Arjun Mehta",
+      position: "president",
+      status: "active",
+    });
+    process.env.NEXT_PUBLIC_DEMO_MODE = prev;
+  });
+  it("a denied route is written to the audit log", async () => {
+    await as("IL1009");
+    await s.audit.recordDenied("/audit");
+    expect(store.getState().audit.at(-1)).toMatchObject({
+      actorId: "mem-1009",
+      action: "permission.denied",
+      entityId: "/audit",
+    });
+  });
+  it("sign out and current user still work while Simulate error is on", async () => {
+    await as("IL1002");
+    await s.dev.setSimulateError(true);
+    expect((await s.auth.getCurrentUser())?.employeeId).toBe("IL1002");
+    await s.auth.signOut();
+    expect(await s.auth.getCurrentUser()).toBeNull();
   });
   it("signs in case-insensitively and out", async () => {
     expect((await s.auth.signIn(" il1013 ")).name).toBe("Aditya Kulkarni");
@@ -527,6 +556,8 @@ describe("permissions and dev controls", () => {
         .getState()
         .notifications.some((n) => n.title.startsWith("Test notification")),
     ).toBe(false);
+    // reset keeps the session so the dev panel stays open
+    expect((await s.auth.getCurrentUser())?.employeeId).toBe("IL1002");
   });
   it("club table flags Ganesh as inactive and no one else", async () => {
     await as("IL1003");

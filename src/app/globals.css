@@ -106,15 +106,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Root stays 16px so rem-based sizes match design.md; body text is 14px. */
   html {
-    @apply font-sans text-sm;
+    @apply font-sans;
   }
   body {
     @apply bg-background text-foreground text-sm leading-normal;
-  }
-  :focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -126,11 +123,8 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
+/* Unlayered so it beats the `outline-none` utility on shadcn primitives (design.md 2 px ring, 2 px offset). */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }

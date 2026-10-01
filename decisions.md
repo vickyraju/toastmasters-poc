@@ -34,3 +34,18 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 - **Swap request is validated at request and again at accept.** Cost if wrong: none.
 - **Expired slot requests**: when a slot changes hands, its pending swap is cancelled and its pending withdrawal is rejected, with their tasks closed (R-06 "swaps expire"). Cost if wrong: one helper.
 - **Vote results are fetched only through `voteView`** and only when `can(vote.view_result)` holds; list/get require officer rights. Cost if wrong: none.
+
+## M3 (2026-10-01)
+
+- **One sign-in refusal for unknown, inactive and removed IDs**: "We could not find that employee ID." flow.md J-01 (precedence over mock-data.md, which lists a separate "not active" message) says the message must not reveal which IDs exist. Cost if wrong: one branch in `core.service.ts`.
+- **Login button says "Sign in"** (flow.md J-01) not "Continue" (design.md S-01 prompt); flow.md wins on precedence. Cost if wrong: one word.
+- **G-05 renders in place inside the shell** (URL kept, top bar and Sign out still there) instead of a separate `/access-denied` route outside the shell (architecture.md section 4). Same component serves R-18 (Draft meeting links). Cost if wrong: one redirect.
+- **`permission.denied` added to AUDIT_ACTIONS**: schema.md section 6 requires the note but section 2's enum omitted it. Logged through a new `audit.recordDenied(path)`.
+- **Service additions** not in schema.md section 9: `auth.demoAccounts()` (architecture.md section 5 demo list; empty unless demo mode) and `dev.status()` (mock clock and simulate-error state for /dev).
+- **Session calls ignore "Simulate error"** (`getCurrentUser`, `signOut`, `demoAccounts`, `recordDenied`, all dev actions) so the dev panel and Sign out cannot be locked out. "Reset data" keeps the signed-in member.
+- **Root font stays 16px**; body text is 14px. With `html { font-size: 14px }` every rem size shrank 12.5% (buttons came out 35px). Buttons are 40px desktop, 44px below lg (touch targets).
+- **Avatar tints** use four token pairs (primary, success, warning, info); design.md asks for "colour from name hash" without a palette. Danger is excluded so no one's avatar reads as an error.
+- **Bell is a link to /notifications** for now; the dropdown (G-02) and toast click-through polish are M4. Toasts on new notifications (G-03) are already wired so the dev panel's test notification is visible.
+- **Unbuilt screens share one placeholder** (`(app)/[...slug]`), replaced as each real page lands; delete it in M12. Unknown URLs show it instead of a 404 until then.
+- **No idle session expiry**: flow.md J-01 mentions it with no duration. Default: none in mock mode. Rate limiting and sign-in logging are MVP/API-mode items (architecture.md section 5), not mock.
+- **/dev is reachable only by typing the URL** ("hidden", mock-data.md section 1); no link to it.
