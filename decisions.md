@@ -49,3 +49,14 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 - **Unbuilt screens share one placeholder** (`(app)/[...slug]`), replaced as each real page lands; delete it in M12. Unknown URLs show it instead of a 404 until then.
 - **No idle session expiry**: flow.md J-01 mentions it with no duration. Default: none in mock mode. Rate limiting and sign-in logging are MVP/API-mode items (architecture.md section 5), not mock.
 - **/dev is reachable only by typing the URL** ("hidden", mock-data.md section 1); no link to it.
+
+## M4 (2026-10-01)
+
+- **Tasks carry a due date** so S-07 can group them: T-01 is due at the meeting end that created it; T-02, T-04, T-06, T-07 and T-08 at the meeting start; T-05 at the vote deadline; T-03 has none (no deadline in the docs) and sits under Later. Groups: Today = overdue or due by end of today IST; This week = within 7 days; Later = further or undated.
+- **Task buttons are named per type** ("Submit report", "Review request", "Verify", "Answer swap", "Cast vote", "Add details", "Set theme", "Fill roles") and link to the task's place. The Accept/Decline swap buttons from my Stitch prompt are not on S-07: the docs say a task is done by the action itself, which happens on the S-04 Roles tab (M6).
+- **"Open roles I can take" applies member rules to everyone**, officers included (no override), and lists only slots in upcoming Open or Finalized meetings. New service method `roles.openForMe()`.
+- **Home "Pending approvals"** uses a new `roles.pendingWithdrawals()` (ExComm) and the existing `progress.verifyQueue()` (VPE only). Rejecting a level needs a reason in a dialog (R-11); rejecting a withdrawal has no reason field (none in the docs).
+- **Positions summary** uses a new `positions.list()` (President only); the rest of the positions service lands in M10.
+- **Quick actions** follow design.md section 4 (Create meeting, Add member, Templates) plus flow.md J-02's President extras (Manage positions, Start vote). flow.md's "Assign role" quick action is the button on the Next meeting status card instead. Links point at screens built in later milestones.
+- **`isEligible` moved to `VoteSummary`** so Home can find open votes that need this member.
+- **Finalize from Home** asks for confirmation when roles are still open (R-07 "warn, allow anyway").

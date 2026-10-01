@@ -568,3 +568,64 @@ describe("permissions and dev controls", () => {
     ).toEqual(["IL1015"]);
   });
 });
+
+describe("M4 Home data", () => {
+  it("openForMe: only slots the member can take now (R-02, R-03), soonest first", async () => {
+    await as("IL1009"); // Mohammed L2, Speaker 1 on 2 Oct
+    const items = await s.roles.openForMe();
+    const twoOct = items.filter((i) => i.meetingId === M2).map((i) => i.label);
+    expect(twoOct).toEqual(["Grammarian"]); // holds a main role on 2 Oct; Grammarian is support
+    expect(items.some((i) => i.meetingId === "mtg-2026-10-09")).toBe(true);
+    expect(items.every((i) => i.meetingId !== "mtg-2026-10-16")).toBe(true); // drafts excluded
+    expect(items.map((i) => i.startsAt)).toEqual(
+      [...items.map((i) => i.startsAt)].sort(),
+    );
+  });
+  it("openForMe: level gates evaluator slots for members", async () => {
+    await as("IL1013"); // Aditya L1, Ah-Counter on 2 Oct (support), no main role
+    const twoOct = (await s.roles.openForMe())
+      .filter((i) => i.meetingId === M2)
+      .map((i) => i.label);
+    expect(twoOct).not.toContain("Evaluator 2"); // needs 2
+    expect(twoOct).not.toContain("Evaluator 3"); // needs 3
+    expect(twoOct).not.toContain("Grammarian"); // already has a support role
+  });
+  it("pendingWithdrawals: ExComm sees Nisha's request; members are FORBIDDEN", async () => {
+    await as("IL1003");
+    expect(await s.roles.pendingWithdrawals()).toEqual([
+      expect.objectContaining({
+        memberName: "Nisha Pillai",
+        label: "Evaluator 1",
+        meetingId: M2,
+        request: expect.objectContaining({ reason: "Client call at 4 PM" }),
+      }),
+    ]);
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(await code(s.roles.pendingWithdrawals())).toBe("FORBIDDEN");
+  });
+  it("positions.list: President only; seven filled, next President unset", async () => {
+    await as("IL1001");
+    const p = await s.positions.list();
+    expect(p.items.filter((i) => i.memberId)).toHaveLength(7);
+    expect(p.items[0]).toEqual({
+      code: "president",
+      memberId: "mem-1001",
+      memberName: "Arjun Mehta",
+    });
+    expect(p.nextPresidentId).toBeNull();
+    await s.auth.signOut();
+    await as("IL1002");
+    expect(await code(s.positions.list())).toBe("FORBIDDEN");
+  });
+  it("tasks carry due dates: T-01 at meeting end, T-04 at meeting start", async () => {
+    await as("IL1013");
+    const t = await s.tasks.listMine();
+    expect(t.find((x) => x.code === "T-01")?.dueAt).toBe(
+      store.getState().meetings.find((m) => m.id === "mtg-2026-09-25")!.endsAt,
+    );
+    expect(t.find((x) => x.code === "T-04")?.dueAt).toBe(
+      store.getState().meetings.find((m) => m.id === M2)!.startsAt,
+    );
+  });
+});

@@ -230,6 +230,7 @@ export function reportDue(
     link,
     refType: "meeting_role",
     refId: slot.id,
+    dueAt: at.toISOString(), // the meeting end that made it due
     dedupeKey: `T-01:${slot.id}`,
   });
 }
@@ -390,6 +391,7 @@ export function unfilledRoles(
       link: rolesLink(m.id),
       refType: "meeting",
       refId: m.id,
+      dueAt: m.startsAt,
       dedupeKey: `T-08:${m.id}:${new Date(m.startsAt).getTime()}`,
     });
   }
@@ -443,6 +445,7 @@ export const withdrawalRequested = (
       link: rolesLink(m.id, slotId),
       refType: "withdrawal",
       refId: w.id,
+      dueAt: m.startsAt,
       dedupeKey: `T-02:${w.id}`,
     }),
   );
@@ -460,6 +463,7 @@ export const swapRequested = (
     link: rolesLink(m.id, slotId),
     refType: "swap",
     refId: s.id,
+    dueAt: m.startsAt,
     dedupeKey: `T-04:${s.id}`,
   });
 
@@ -475,6 +479,7 @@ export const speechDetailsMissing = (
     link: rolesLink(m.id, slot.id),
     refType: "meeting_role",
     refId: slot.id,
+    dueAt: m.startsAt,
     dedupeKey: `T-06:${slot.id}`,
   });
 
@@ -486,5 +491,6 @@ export const themeMissing = (d: EventData, m: MeetingRef, tmodId: string) =>
     link: `/meetings/${m.id}?tab=overview`,
     refType: "meeting",
     refId: m.id,
+    dueAt: m.startsAt,
     dedupeKey: `T-07:${m.id}`,
   });

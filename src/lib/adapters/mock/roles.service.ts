@@ -1,5 +1,7 @@
 import { AppError } from "../../services/errors";
 import type {
+  OpenRoleItem,
+  PendingWithdrawalItem,
   RoleSlotView,
   RolesService,
   WithdrawOutcome,
@@ -208,6 +210,64 @@ const swapError = (code: string) =>
 
 export function rolesService({ store, call }: Ctx): RolesService {
   return {
+    openForMe: () =>
+      call((sid) => {
+        const d = store.getState();
+        const { member } = me(d, sid);
+        const at = now().toISOString();
+        const items: OpenRoleItem[] = [];
+        const upcoming = d.meetings
+          .filter(
+            (m) =>
+              (m.status === "open" || m.status === "finalized") &&
+              m.startsAt > at,
+          )
+          .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+        for (const m of upcoming) {
+          const open = d.meetingRoles
+            .filter((s) => s.meetingId === m.id && !s.memberId)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+          for (const slot of open) {
+            try {
+              // Member rules even for officers: "I can take" means without an override.
+              checkTake(d, slot, member.id, false);
+              items.push({
+                meetingId: m.id,
+                meetingTitle: m.title,
+                startsAt: m.startsAt,
+                slotId: slot.id,
+                label: slot.label,
+              });
+            } catch (e) {
+              if (!(e instanceof AppError)) throw e;
+            }
+          }
+        }
+        return items;
+      }),
+
+    pendingWithdrawals: () =>
+      call((sid) => {
+        const d = store.getState();
+        const { actor } = me(d, sid);
+        if (!can(actor, "role.withdraw.decide"))
+          throw new AppError("FORBIDDEN", "You do not have access to this.");
+        return d.withdrawals
+          .filter((w) => w.status === "pending")
+          .map((w): PendingWithdrawalItem => {
+            const slot = slotOf(d, w.meetingRoleId);
+            const m = meetingOf(d, slot.meetingId);
+            return {
+              request: w,
+              memberName: memberName(d, w.memberId),
+              label: slot.label,
+              meetingId: m.id,
+              startsAt: m.startsAt,
+            };
+          })
+          .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+      }),
+
     listForMeeting: (meetingId) =>
       call((sid) => {
         const d = store.getState();

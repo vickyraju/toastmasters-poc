@@ -5,11 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccessDenied } from "@/components/shared/AccessDenied";
 import { useCurrentUser, useSignOut, toActor } from "@/hooks/useSession";
-import {
-  useMyNotifications,
-  useMyTasks,
-  useNotificationToasts,
-} from "@/hooks/useInbox";
+import { useMyTasks, useNotificationToasts } from "@/hooks/useInbox";
 import { useMockTick } from "@/hooks/useDev";
 import { canOpen, titleFor } from "@/lib/permissions/routes";
 import type { CurrentUser } from "@/lib/services";
@@ -53,7 +49,6 @@ function SignedInShell({
   const router = useRouter();
   const signOut = useSignOut();
   const tasks = useMyTasks();
-  const inbox = useMyNotifications();
   useNotificationToasts();
   useMockTick();
 
@@ -71,7 +66,7 @@ function SignedInShell({
           <TopBar
             title={titleFor(pathname)}
             user={user}
-            unread={inbox.data?.unread ?? 0}
+
             onSignOut={handleSignOut}
           />
           <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 p-6 max-lg:p-4 max-lg:pb-24">

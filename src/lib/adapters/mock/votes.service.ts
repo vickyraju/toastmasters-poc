@@ -27,6 +27,9 @@ const summary = (d: MockData, v: Vote, memberId: string): VoteSummary => ({
   iHaveVoted: d.voteParticipation.some(
     (p) => p.voteId === v.id && p.memberId === memberId,
   ),
+  isEligible: d.voteEligible.some(
+    (e) => e.voteId === v.id && e.memberId === memberId,
+  ),
 });
 
 export function votesService({ store, call }: Ctx): VotesService {
@@ -67,9 +70,6 @@ export function votesService({ store, call }: Ctx): VotesService {
           ...summary(d, v, member.id),
           options,
           view,
-          isEligible: d.voteEligible.some(
-            (e) => e.voteId === id && e.memberId === member.id,
-          ),
         };
       }),
 

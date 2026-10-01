@@ -123,8 +123,27 @@ export type WithdrawOutcome =
   | { outcome: "withdrawn" }
   | { outcome: "requested"; request: WithdrawalRequest };
 
+export interface OpenRoleItem {
+  meetingId: string;
+  meetingTitle: string;
+  startsAt: string;
+  slotId: string;
+  label: string;
+}
+export interface PendingWithdrawalItem {
+  request: WithdrawalRequest;
+  memberName: string;
+  label: string;
+  meetingId: string;
+  startsAt: string;
+}
+
 export interface RolesService {
   listForMeeting(meetingId: string): Promise<RoleSlotView[]>;
+  /** Open slots in upcoming Open or Finalized meetings the signed-in member could take now (R-02, R-03). Home card. */
+  openForMe(): Promise<OpenRoleItem[]>;
+  /** ExComm: every pending late-withdrawal request (Home "Pending approvals"). */
+  pendingWithdrawals(): Promise<PendingWithdrawalItem[]>;
   addSlot(
     meetingId: string,
     input: { roleTemplateId: string; label?: string },
@@ -196,11 +215,11 @@ export interface ProgressService {
 export interface VoteSummary extends Vote {
   turnout: { cast: number; eligible: number };
   iHaveVoted: boolean;
+  isEligible: boolean;
 }
 export interface VoteDetail extends VoteSummary {
   options: VoteOption[];
   view: VoteView;
-  isEligible: boolean;
 }
 export interface StartVoteInput {
   title: string;
@@ -246,6 +265,20 @@ export interface DevService {
   status(): Promise<{ now: string; simulateError: boolean }>;
 }
 
+export interface PositionsSummary {
+  items: {
+    code: Position;
+    memberId: string | null;
+    memberName: string | null;
+  }[];
+  nextPresidentId: string | null;
+  nextPresidentName: string | null;
+}
+
+export interface PositionsService {
+  list(): Promise<PositionsSummary>;
+}
+
 export interface Services {
   auth: AuthService;
   meetings: MeetingsService;
@@ -255,6 +288,7 @@ export interface Services {
   progress: ProgressService;
   votes: VotesService;
   members: MembersService;
+  positions: PositionsService;
   audit: AuditService;
   dev: DevService;
 }

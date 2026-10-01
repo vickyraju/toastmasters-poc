@@ -17,3 +17,8 @@ export function istDate(value: DateInput): string {
 export function istToUtcIso(date: string, time: string): string {
   return fromZonedTime(`${date}T${time}:00`, CLUB_TIMEZONE).toISOString();
 }
+
+/** Meeting times always show the weekday and IST (design.md section 5), e.g. "Fri 2 Oct, 4:00 PM IST". */
+export function formatMeetingTime(value: DateInput): string {
+  return `${formatIST(value, "EEE d MMM, h:mm a")} IST`;
+}

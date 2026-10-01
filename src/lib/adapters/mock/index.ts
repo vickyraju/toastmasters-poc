@@ -5,6 +5,7 @@ import {
   devService,
   membersService,
   notificationsService,
+  positionsService,
   tasksService,
 } from "./core.service";
 import { meetingsService } from "./meetings.service";
@@ -42,6 +43,7 @@ export function createMockServices(
     progress: progressService(ctx),
     votes: votesService(ctx),
     members: membersService(ctx),
+    positions: positionsService(ctx),
     audit: auditService(ctx),
     dev: devService(ctx),
   };

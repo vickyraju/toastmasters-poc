@@ -104,7 +104,7 @@ describe("AppShell (M3 done-when)", () => {
     renderWithQuery(<AppShell>page</AppShell>);
     expect(
       await screen.findByRole(
-        "link",
+        "button",
         { name: "Notifications, 3 unread" },
         WAIT,
       ),

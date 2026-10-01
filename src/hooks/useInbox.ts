@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getServices } from "@/lib/services";
@@ -35,7 +35,11 @@ export function useNotificationToasts() {
           action: {
             label: "View",
             onClick: () => {
-              void getServices().notifications.markRead([n.id]);
+              void getServices()
+                .notifications.markRead([n.id])
+                .then(() =>
+                  qc.invalidateQueries({ queryKey: qk.notifications }),
+                );
               router.push(n.link);
             },
           },
@@ -43,4 +47,22 @@ export function useNotificationToasts() {
       }),
     [qc, router],
   );
+}
+
+/** Opening a notification marks it read (flow.md J-13 step 4). */
+export function useMarkRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => getServices().notifications.markRead(ids),
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.notifications }),
+  });
+}
+
+export function useMarkAllRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => getServices().notifications.markAllRead(),
+    onError: (e) => toast.error(e.message),
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.notifications }),
+  });
 }
