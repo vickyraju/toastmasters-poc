@@ -1,0 +1,36 @@
+/* Design tokens from design.md section 2. Change values here, nowhere else. */
+:root {
+  --primary: #004165;
+  --primary-hover: #00304b;
+  --primary-soft: #e6eef3;
+  --on-primary: #ffffff;
+  /* design.md --accent; renamed because shadcn owns --accent (hover bg) */
+  --brand-accent: #772432;
+  --bg: #f7f9fb;
+  --surface: #ffffff;
+  --text: #15212b;
+  --text-muted: #4a5866;
+  --border: #d5dbe3;
+  --border-input: #758195;
+  --focus: #1a73e8;
+  --success: #1e7b34;
+  --success-bg: #e6f4ea;
+  --warning: #8a5a00;
+  --warning-bg: #fff4d6;
+  --danger: #b3261e;
+  --danger-bg: #fce8e6;
+  --info: #0b5cad;
+  --info-bg: #e8f1fb;
+
+  /* Timer card swatches: timer report and consolidated report only */
+  --timer-green: #1e8e3e;
+  --timer-yellow: #f2c200;
+  --timer-red: #c62828;
+  --timer-dq: #3c4043;
+
+  --radius: 8px;
+  --radius-dialog: 12px;
+  --elevation: 0 8px 24px rgba(21, 33, 43, 0.12);
+  --sidebar-width: 248px;
+  --content-max: 1200px;
+}
