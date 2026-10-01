@@ -21,3 +21,16 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 - **R-02 consecutive-repeat** takes the member's earlier role codes per meeting, most recent first, from the caller; rules.md does not say which meetings count. Cost if wrong: change what the service passes in.
 - **`can()` does not compute evaluator eligibility**; the caller passes `evaluatorEligible` from `evaluatorEligibility()`. Cost if wrong: none.
 - **Swap into a speaker slot while evaluating that speaker** is not checked; the docs only require R-02 and R-03 after a swap. Cost if wrong: one extra rule in `swap.ts`.
+
+## M2 (2026-10-01)
+
+- **Session is captured when a call is sent**, not when it runs, so concurrent callers in tests (and two tabs) behave like separate requests. Cost if wrong: none.
+- **Seed tasks and notifications come from the real event functions** plus `tick()`, not hand-written rows, so they cannot drift from R-10. N-05/N-07 and N-12 (for voters) start read; N-01 starts read for the personas whose unread counts the walkthrough names. Cost if wrong: edit the read list in `seed.ts`.
+- **"3 days before" means exactly 72 h**: T-06/T-07 for 9 Oct appear from Tue 6 Oct 4:00 PM IST, not at 10 AM. mock-data.md says only "jump to Tue 6 Oct". Cost if wrong: change the 72 in `tick.ts`.
+- **Notifications skip inactive members**, so N-01 and N-05 reach 14 people, not 15. Cost if wrong: one filter in `events.ts`.
+- **Contest meeting has 9 slots** (TMOD, Timer, Ah-Counter, Chief Judge, 4 Contestants, Sergeant-at-Arms) from mock-data.md 4.2 and 5.5. Cost if wrong: edit the seed.
+- **18 Sep has 4 speakers and 4 evaluators** so each timer card appears once (5.3 asks for four cards; 4.2 says 12 slots). Cost if wrong: drop a speaker.
+- **Officers waive only the level check** when claiming an evaluator slot (audited `role.override`); R-02 and the self-evaluation block still apply. Cost if wrong: one branch in `roles.service.ts`.
+- **Swap request is validated at request and again at accept.** Cost if wrong: none.
+- **Expired slot requests**: when a slot changes hands, its pending swap is cancelled and its pending withdrawal is rejected, with their tasks closed (R-06 "swaps expire"). Cost if wrong: one helper.
+- **Vote results are fetched only through `voteView`** and only when `can(vote.view_result)` holds; list/get require officer rights. Cost if wrong: none.
