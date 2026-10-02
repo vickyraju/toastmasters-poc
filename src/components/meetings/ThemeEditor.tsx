@@ -43,7 +43,7 @@ export function ThemeEditor({
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<ThemeForm, unknown, ThemeValues>({
     resolver: zodResolver(themeInput),
     defaultValues: {
@@ -123,7 +123,10 @@ export function ThemeEditor({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={publish.isPending}>
+            <Button
+              type="submit"
+              disabled={publish.isPending || (published && !isDirty)}
+            >
               Publish
             </Button>
           </DialogFooter>

@@ -246,7 +246,7 @@ export function RecurringDialog({
           <Input
             id="rt-link"
             type="url"
-            placeholder="https://"
+            placeholder="https://example.com/meeting…"
             className="h-11 text-base"
             {...register("meetingLink")}
           />
@@ -436,7 +436,7 @@ export function MeetingTypeDialog({
                 </Label>
                 <Input
                   id={`ag-t-${i}`}
-                  placeholder="Item"
+                  placeholder="Agenda item…"
                   className="h-11 text-base"
                   {...register(`agendaItems.${i}.title`)}
                 />

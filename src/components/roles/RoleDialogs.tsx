@@ -477,7 +477,7 @@ export function SpeakerDialog({
               id="sp-form"
               type="url"
               inputMode="url"
-              placeholder="https://"
+              placeholder="https://example.com/meeting…"
               className="h-11 text-base"
               aria-invalid={errors.evalFormUrl ? true : undefined}
               aria-describedby="sp-form-err"

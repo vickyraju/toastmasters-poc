@@ -173,7 +173,7 @@ export function EditMemberDialog({
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<MemberEditForm, unknown, MemberEditValues>({
     resolver: zodResolver(memberEditInput),
     defaultValues: {
@@ -260,7 +260,7 @@ export function EditMemberDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={update.isPending}>
+            <Button type="submit" disabled={update.isPending || !isDirty}>
               Save
             </Button>
           </DialogFooter>

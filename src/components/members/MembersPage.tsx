@@ -75,7 +75,7 @@ export function MembersPage() {
               id="mem-search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Name, ID or email"
+              placeholder="Search by name, ID or email…"
               className="h-10 pl-9 text-base max-lg:h-11"
             />
           </div>

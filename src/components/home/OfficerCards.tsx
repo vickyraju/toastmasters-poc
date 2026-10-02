@@ -34,7 +34,6 @@ const shortDate = (iso: string) => formatIST(iso, "EEE d MMM");
 const linkClass =
   "text-sm font-medium text-primary underline-offset-4 hover:underline";
 const rowButton = "h-9 max-lg:h-11";
-const dangerButton = `${rowButton} border-danger text-danger`;
 
 export function MeetingStatusCard({
   upcoming,
@@ -184,8 +183,8 @@ export function ApprovalsCard({
                 ) : null}
                 <div className="flex gap-2">
                   <Button
+                    variant="success"
                     size="sm"
-                    variant="outline"
                     className={rowButton}
                     disabled={busy}
                     onClick={() =>
@@ -199,8 +198,8 @@ export function ApprovalsCard({
                   </Button>
                   <Button
                     size="sm"
-                    variant="outline"
-                    className={dangerButton}
+                    variant="danger"
+                    className={rowButton}
                     disabled={busy}
                     onClick={() =>
                       decideW.mutate({
@@ -224,8 +223,8 @@ export function ApprovalsCard({
                     </p>
                     <div className="flex gap-2">
                       <Button
+                        variant="success"
                         size="sm"
-                        variant="outline"
                         className={rowButton}
                         disabled={busy}
                         onClick={() =>
@@ -236,8 +235,8 @@ export function ApprovalsCard({
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
-                        className={dangerButton}
+                        variant="danger"
+                        className={rowButton}
                         disabled={busy}
                         onClick={() => {
                           setReason("");

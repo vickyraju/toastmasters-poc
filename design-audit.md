@@ -5,6 +5,10 @@ Scope: screenshots of every route as Member (IL1009), ExComm (IL1003) and Presid
 ## Fixed
 - **S-04 Roles board (Major).** Officers saw up to four buttons per row, two of them red outlines repeated on every row. Now "Remove holder" and "Delete role" live in a "More actions" menu (labelled per role, 44 px on phone). Primary actions (Take this role, Assign/Reassign, Withdraw, Swap, Edit speech details) stay visible. Both destructive actions still open the existing confirm dialogs.
 
+- **Buttons (all screens).** Red outline buttons (Cancel meeting, Reject, Make vacant, Close vote) kept red on hover instead of turning blue-grey. Approve and Verify are green outlines. See decisions.md D-DP1.
+- **Forms (S-18, S-11, S-05, theme editor).** Save is disabled until something changed, with Discard and an unsaved-changes note. See D-DP2.
+- **Guideline sweep.** Explicit transitions, autocomplete and spellcheck defaults, tabular figures, balanced headings, overscroll containment, placeholder wording. See D-DP3.
+
 ## Deferred (Minor)
 - S-13 Positions: "Make vacant" red outline repeats on six cards. Same pattern as above; left because there is one per card.
 - S-03 Meetings: Type and Status filters are native selects and look different from the shadcn controls.

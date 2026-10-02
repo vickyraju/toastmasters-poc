@@ -298,12 +298,32 @@ describe("S-18 Settings", () => {
     ).toBeChecked();
   });
 
+  it("Save and Discard stay off until something changes; Discard restores the saved values", async () => {
+    await as("IL1009");
+    renderWithQuery(<SettingsPage />);
+    const name = await screen.findByLabelText("Name (required)", {}, WAIT);
+    const save = screen.getByRole("button", { name: "Save Changes" });
+    const discard = screen.getByRole("button", { name: "Discard" });
+    expect(save).toBeDisabled();
+    expect(discard).toBeDisabled();
+    fireEvent.change(name, { target: { value: "Someone Else" } });
+    expect(save).toBeEnabled();
+    expect(screen.getByText("You have unsaved changes.")).toBeInTheDocument();
+    fireEvent.click(discard);
+    expect(name).toHaveValue("Mohammed Faisal");
+    expect(save).toBeDisabled();
+    // changing a value and changing it back is not a change
+    fireEvent.change(name, { target: { value: "X" } });
+    fireEvent.change(name, { target: { value: "Mohammed Faisal" } });
+    expect(save).toBeDisabled();
+  });
+
   it("switching a type off and saving persists it and confirms; bad input shows inline errors", async () => {
     await as("IL1009");
     renderWithQuery(<SettingsPage />);
     const name = await screen.findByLabelText("Name (required)", {}, WAIT);
     fireEvent.change(name, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
     expect(
       await screen.findByText("Enter a name", {}, WAIT),
     ).toBeInTheDocument();
@@ -313,7 +333,7 @@ describe("S-18 Settings", () => {
         name: "New meeting type, template or role added",
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
     await vi.waitFor(
       () =>
         expect(toasts.toast.success).toHaveBeenCalledWith("Settings saved."),
@@ -369,11 +389,14 @@ describe("S-18 Club settings (President only)", () => {
       within(card).getByRole("checkbox", { name: /Require proof/ }),
     ).not.toBeChecked();
 
+    expect(
+      within(card).getByRole("button", { name: "Save Club Settings" }),
+    ).toBeDisabled();
     fireEvent.change(within(card).getByLabelText("Timer grace (seconds)"), {
       target: { value: "500" },
     });
     fireEvent.click(
-      within(card).getByRole("button", { name: "Save club settings" }),
+      within(card).getByRole("button", { name: "Save Club Settings" }),
     );
     expect(
       await within(card).findByText("At most 120 seconds", {}, WAIT),
@@ -389,7 +412,7 @@ describe("S-18 Club settings (President only)", () => {
       within(card).getByRole("checkbox", { name: /Require proof/ }),
     );
     fireEvent.click(
-      within(card).getByRole("button", { name: "Save club settings" }),
+      within(card).getByRole("button", { name: "Save Club Settings" }),
     );
     await vi.waitFor(
       () =>

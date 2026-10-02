@@ -98,8 +98,7 @@ export function DevPanel() {
             Generate recurring meetings
           </Button>
           <Button
-            variant="outline"
-            className="border-danger text-danger"
+            variant="danger"
             disabled={busy}
             onClick={() => {
               if (

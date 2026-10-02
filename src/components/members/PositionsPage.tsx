@@ -166,8 +166,7 @@ export function PositionsPage() {
                         </Button>
                         {item.memberId ? (
                           <Button
-                            variant="outline"
-                            className="border-danger text-danger"
+                            variant="danger"
                             onClick={() => setDialog({ kind: "vacate", item })}
                           >
                             Make vacant

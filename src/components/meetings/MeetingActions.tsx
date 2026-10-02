@@ -125,8 +125,7 @@ export function MeetingActions({
         </>
       ) : null}
       <Button
-        variant="outline"
-        className="border-danger text-danger"
+        variant="danger"
         onClick={() => {
           setReason("");
           setPending("cancel");

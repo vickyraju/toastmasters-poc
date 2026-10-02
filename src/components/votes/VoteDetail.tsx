@@ -222,11 +222,7 @@ function Loaded({ vote: v }: { vote: Detail }) {
       )}
 
       {open && canClose ? (
-        <Button
-          variant="outline"
-          className="border-danger text-danger"
-          onClick={() => setConfirm("close")}
-        >
+        <Button variant="danger" onClick={() => setConfirm("close")}>
           Close vote
         </Button>
       ) : null}

@@ -261,7 +261,6 @@ export function RoleBoard({
 }
 
 const small = "h-9 max-lg:h-11";
-const danger = `${small} border-danger text-danger`;
 
 function RoleRow({
   row,
@@ -487,8 +486,8 @@ function RoleRow({
           {ctx.isOfficer && live ? (
             <span className="flex gap-2">
               <Button
+                variant="success"
                 size="sm"
-                variant="outline"
                 className={small}
                 disabled={decide.isPending}
                 onClick={() =>
@@ -502,8 +501,8 @@ function RoleRow({
               </Button>
               <Button
                 size="sm"
-                variant="outline"
-                className={danger}
+                variant="danger"
+                className={small}
                 disabled={decide.isPending}
                 onClick={() =>
                   decide.mutate({

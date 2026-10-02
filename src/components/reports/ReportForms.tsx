@@ -272,7 +272,7 @@ export function AhCounterForm(p: FormProps) {
                 <Input
                   id={`ahw-${id}`}
                   value={words[id] ?? ""}
-                  placeholder="um 4, so 2, like 1"
+                  placeholder="um 4, so 2, like 1…"
                   disabled={p.locked}
                   aria-invalid={
                     parseWords(words[id] ?? "") === null ? true : undefined

@@ -2,11 +2,12 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleAlert, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CircleAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormActions } from "@/components/shared/FormActions";
 import { QueryBlock } from "@/components/shared/QueryBlock";
+import { useDirtyGuard } from "@/hooks/useDirtyGuard";
 import { useClubSettings, useUpdateClub } from "@/hooks/useAdmin";
 import {
   clubSettingsInput,
@@ -53,7 +54,8 @@ function ClubForm({ club }: { club: ClubSettings }) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    reset,
+    formState: { errors, isDirty },
   } = useForm<ClubSettingsForm, unknown, ClubSettingsValues>({
     resolver: zodResolver(clubSettingsInput),
     defaultValues: {
@@ -66,6 +68,7 @@ function ClubForm({ club }: { club: ClubSettings }) {
       generateWeeksAhead: club.generateWeeksAhead,
     },
   });
+  useDirtyGuard(isDirty);
   const server = (k: string) =>
     update.error instanceof AppError
       ? update.error.extra.fields?.[k]
@@ -95,7 +98,15 @@ function ClubForm({ club }: { club: ClubSettings }) {
     <form
       noValidate
       className="space-y-4"
-      onSubmit={handleSubmit((v) => update.mutate(v))}
+      onSubmit={handleSubmit((v) =>
+        update.mutate(v, {
+          onSuccess: (saved) =>
+            reset({
+              ...saved,
+              consecutiveRepeatLimit: saved.consecutiveRepeatLimit ?? "",
+            }),
+        }),
+      )}
     >
       {field("cs-name", "Club name (required)", null, "clubName")}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -148,14 +159,12 @@ function ClubForm({ club }: { club: ClubSettings }) {
           </span>
         </span>
       </label>
-      <div className="flex justify-end">
-        <Button type="submit" disabled={update.isPending}>
-          {update.isPending ? (
-            <Loader2 className="animate-spin" aria-hidden="true" />
-          ) : null}
-          Save club settings
-        </Button>
-      </div>
+      <FormActions
+        dirty={isDirty}
+        saving={update.isPending}
+        saveLabel="Save Club Settings"
+        onDiscard={() => reset()}
+      />
     </form>
   );
 }

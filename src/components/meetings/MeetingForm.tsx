@@ -174,7 +174,7 @@ function Loaded({
     handleSubmit,
     control,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<MeetingFormForm, unknown, MeetingFormValues>({
     resolver: zodResolver(meetingFormInput),
     defaultValues: defaults,
@@ -368,7 +368,7 @@ function Loaded({
             id="mf-link"
             type="url"
             inputMode="url"
-            placeholder="https://"
+            placeholder="https://example.com/meeting…"
             className="h-11 text-base"
             aria-invalid={errors.meetingLink ? true : undefined}
             aria-describedby="mf-link-err mf-loc-help"
@@ -521,7 +521,7 @@ function Loaded({
           <Button
             type="submit"
             variant={editing ? "default" : "outline"}
-            disabled={busy}
+            disabled={busy || (editing && !isDirty && !agenda)}
             onClick={() => (intent.current = "draft")}
           >
             {editing ? "Save changes" : "Save draft"}

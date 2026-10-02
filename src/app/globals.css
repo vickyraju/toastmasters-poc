@@ -113,6 +113,23 @@
   body {
     @apply bg-background text-foreground text-sm leading-normal;
   }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  /* Numbers line up in tables and counters. */
+  td,
+  th,
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+  a,
+  button,
+  [role="tab"],
+  [role="switch"] {
+    touch-action: manipulation;
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

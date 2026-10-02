@@ -214,14 +214,15 @@ function Queue() {
                 {isVpe ? (
                   <div className="flex gap-2">
                     <Button
+                      variant="success"
                       className="h-9 max-lg:h-11"
                       onClick={() => setDialog({ kind: "verify", item: c })}
                     >
                       Verify
                     </Button>
                     <Button
-                      variant="outline"
-                      className="h-9 border-danger text-danger max-lg:h-11"
+                      variant="danger"
+                      className="h-9 max-lg:h-11"
                       onClick={() => setDialog({ kind: "reject", item: c })}
                     >
                       Reject

@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { CircleAlert, Loader2, Lock } from "lucide-react";
+import { CircleAlert, Lock } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FormActions } from "@/components/shared/FormActions";
 import { QueryBlock } from "@/components/shared/QueryBlock";
+import { useDirtyGuard } from "@/hooks/useDirtyGuard";
 import { useNotifPrefs, useSavePrefs } from "@/hooks/useAdmin";
 import { useUpdateMember } from "@/hooks/useMembers";
 import { useCan, useCurrentUser } from "@/hooks/useSession";
@@ -53,6 +54,29 @@ function Form({ user, rows }: { user: CurrentUser; rows: NotifPrefRow[] }) {
   const [enabled, setEnabled] = useState<Record<string, boolean>>(
     Object.fromEntries(rows.map((r) => [r.code, r.enabled])),
   );
+  // what is saved right now; Save turns on only when the form differs from it
+  const [saved, setSaved] = useState(() => ({
+    name,
+    email,
+    pathway,
+    tmId,
+    enabled,
+  }));
+  const dirty =
+    name !== saved.name ||
+    email !== saved.email ||
+    pathway !== saved.pathway ||
+    tmId !== saved.tmId ||
+    Object.keys(enabled).some((k) => enabled[k] !== saved.enabled[k]);
+  useDirtyGuard(dirty);
+  function onDiscard() {
+    setName(saved.name);
+    setEmail(saved.email);
+    setPathway(saved.pathway);
+    setTmId(saved.tmId);
+    setEnabled(saved.enabled);
+    setErrors({});
+  }
   const [errors, setErrors] = useState<Record<string, string>>({});
   const busy = update.isPending || save.isPending;
 
@@ -86,6 +110,7 @@ function Form({ user, rows }: { user: CurrentUser; rows: NotifPrefRow[] }) {
         if (!r.locked && enabled[r.code] !== r.enabled)
           changes[r.code] = enabled[r.code];
       if (Object.keys(changes).length) await save.mutateAsync(changes);
+      setSaved({ name, email, pathway, tmId, enabled });
       toast.success("Settings saved.");
     } catch (err) {
       // the mutations already toast their own errors; field-level ones also show inline
@@ -117,6 +142,7 @@ function Form({ user, rows }: { user: CurrentUser; rows: NotifPrefRow[] }) {
             <Label htmlFor="st-name">Name (required)</Label>
             <Input
               id="st-name"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-11 text-base"
@@ -128,6 +154,7 @@ function Form({ user, rows }: { user: CurrentUser; rows: NotifPrefRow[] }) {
             <Label htmlFor="st-email">Email (required)</Label>
             <Input
               id="st-email"
+              autoComplete="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -218,12 +245,9 @@ function Form({ user, rows }: { user: CurrentUser; rows: NotifPrefRow[] }) {
 
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card px-4 py-3 max-lg:bottom-14 lg:left-[var(--sidebar-width)]">
           <div className="mx-auto flex max-w-[760px] justify-end">
-            <Button type="submit" disabled={busy} className="max-sm:w-full">
-              {busy ? (
-                <Loader2 className="animate-spin" aria-hidden="true" />
-              ) : null}
-              Save changes
-            </Button>
+            <div className="w-full">
+              <FormActions dirty={dirty} saving={busy} onDiscard={onDiscard} />
+            </div>
           </div>
         </div>
       </form>
