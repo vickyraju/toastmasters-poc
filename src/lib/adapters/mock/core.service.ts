@@ -1,5 +1,6 @@
 import { AppError } from "../../services/errors";
 import type {
+  AuditRow,
   AuditService,
   AuthService,
   DevService,
@@ -20,6 +21,8 @@ import {
 } from "./runtime";
 import { createSeed } from "./seed";
 import { appendAudit, tick } from "./tick";
+import { describeTarget } from "./audit-labels";
+import { istDate } from "../../time/ist";
 import type { MockData } from "./state";
 
 const userOf = (d: MockData, id: string): CurrentUser => {
@@ -141,15 +144,23 @@ export function auditService({ store, call }: Ctx): AuditService {
       call((sid) => {
         const d = store.getState();
         assertCan(me(d, sid).actor, "audit.view");
+        // The date range is in IST and inclusive at both ends.
         return d.audit
           .filter(
             (a) =>
               (!f.action || a.action === f.action) &&
               (!f.actorId || a.actorId === f.actorId) &&
-              (!f.from || a.createdAt >= f.from) &&
-              (!f.to || a.createdAt <= f.to),
+              (!f.from || istDate(a.createdAt) >= f.from) &&
+              (!f.to || istDate(a.createdAt) <= f.to),
           )
-          .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+          .map((a): AuditRow => ({
+            ...a,
+            actorName: a.actorId
+              ? (d.members.find((m) => m.id === a.actorId)?.name ?? null)
+              : null,
+            target: describeTarget(d, a),
+          }));
       }),
     recordDenied: (path) =>
       call(

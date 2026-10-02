@@ -174,8 +174,9 @@ describe("S-11 Members", () => {
     renderWithQuery(<MembersPage />);
     await row("Karthik Subramanian");
     let menu = await openMenu("Karthik Subramanian");
+    // the signed-in user loads a moment after the table, so wait for the hint
     expect(
-      within(menu).getByText("You cannot remove yourself."),
+      await within(menu).findByText("You cannot remove yourself.", {}, WAIT),
     ).toBeInTheDocument();
     expect(
       within(menu).getByRole("menuitem", { name: "Remove" }),
@@ -183,7 +184,7 @@ describe("S-11 Members", () => {
     fireEvent.keyDown(menu, { key: "Escape" });
     menu = await openMenu("Arjun Mehta");
     expect(
-      within(menu).getByText("Transfer the presidency first."),
+      await within(menu).findByText("Transfer the presidency first.", {}, WAIT),
     ).toBeInTheDocument();
   });
 

@@ -9,6 +9,8 @@ import { QueryBlock } from "@/components/shared/QueryBlock";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { useMeetings, useNow } from "@/hooks/useHome";
 import { useCan } from "@/hooks/useSession";
+import { useOpenAllDrafts } from "@/hooks/useTemplates";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { MEETING_STATUS } from "@/lib/domain/constants";
 import type { MeetingStatus } from "@/lib/domain/types";
 import type { MeetingListItem } from "@/lib/services";
@@ -32,6 +34,10 @@ export function MeetingsPage() {
   const meetings = useMeetings();
   const nowQ = useNow();
   const isOfficer = useCan("meeting.create");
+  const openAll = useOpenAllDrafts();
+  const [confirmOpenAll, setConfirmOpenAll] = useState(false);
+  const draftCount =
+    meetings.data?.filter((m) => m.status === "draft").length ?? 0;
   const [view, setView] = useState<"calendar" | "list">("calendar");
   const [type, setType] = useState("");
   const [status, setStatus] = useState<MeetingStatus | "">("");
@@ -116,6 +122,15 @@ export function MeetingsPage() {
         </div>
         {isOfficer ? (
           <div className="flex gap-2 lg:ml-auto">
+            {draftCount > 0 ? (
+              <Button
+                variant="outline"
+                disabled={openAll.isPending}
+                onClick={() => setConfirmOpenAll(true)}
+              >
+                Open all drafts
+              </Button>
+            ) : null}
             <Button asChild variant="outline">
               <Link href="/meetings/templates">Templates</Link>
             </Button>
@@ -145,6 +160,21 @@ export function MeetingsPage() {
           )
         }
       </QueryBlock>
+      {confirmOpenAll ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(o) => !o && setConfirmOpenAll(false)}
+          title="Open all drafts for roles?"
+          description={`${draftCount} draft ${draftCount === 1 ? "meeting opens" : "meetings open"} and every member is notified once per meeting. A draft with no venue or link stays a draft.`}
+          confirmLabel="Open all drafts"
+          busy={openAll.isPending}
+          onConfirm={() =>
+            openAll.mutate(undefined, {
+              onSettled: () => setConfirmOpenAll(false),
+            })
+          }
+        />
+      ) : null}
     </div>
   );
 }

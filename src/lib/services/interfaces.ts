@@ -11,6 +11,7 @@ import type {
 } from "../domain/schemas";
 import type {
   AuditAction,
+  NotifCode,
   PathwaysProject,
   ReportKind,
   ReportPayload,
@@ -132,7 +133,15 @@ export interface MeetingsService {
     status: MeetingStatus,
     reason?: string,
   ): Promise<
-    { ok: true; warnings: LifecycleWarning[] } | { ok: false; message: string }
+    | {
+        ok: true;
+        warnings: LifecycleWarning[];
+        /** Labels of roles nobody holds (OPEN_ROLES). */
+        openRoles: string[];
+        /** "Role (holder)" for each report not yet submitted (MISSING_REPORTS). */
+        missingReports: string[];
+      }
+    | { ok: false; message: string }
   >;
   publishTheme(id: string, input: ThemeInput): Promise<Meeting>;
   uploadAgenda(id: string, file: UploadFile): Promise<FileRecord>;
@@ -393,8 +402,41 @@ export interface AuditFilters {
   from?: string;
   to?: string;
 }
+export interface AuditRow extends AuditEntry {
+  actorName: string | null;
+  /** What the action was done to, in words (a meeting and its date, a member, a vote title). */
+  target: string;
+}
+
+export type ExportKind = "roles" | "meetings" | "progress";
+export interface ExportResult {
+  filename: string;
+  csv: string;
+  rows: number;
+}
+export interface ExportService {
+  /** Dates are `YYYY-MM-DD` in IST, both inclusive (S-17). */
+  csv(
+    kind: ExportKind,
+    range: { from: string; to: string },
+  ): Promise<ExportResult>;
+}
+
+export interface NotifPrefRow {
+  code: NotifCode;
+  label: string;
+  enabled: boolean;
+  /** Cannot be switched off (FR-40). */
+  locked: boolean;
+}
+export interface SettingsService {
+  notificationPrefs(): Promise<NotifPrefRow[]>;
+  /** `false` opts out; a locked type is refused. Types left out are unchanged. */
+  savePrefs(changes: Partial<Record<NotifCode, boolean>>): Promise<void>;
+}
+
 export interface AuditService {
-  list(filters?: AuditFilters): Promise<AuditEntry[]>;
+  list(filters?: AuditFilters): Promise<AuditRow[]>;
   /** G-05: log a route the signed-in member was not allowed to open. */
   recordDenied(path: string): Promise<void>;
 }
@@ -479,6 +521,8 @@ export interface Services {
   positions: PositionsService;
   templates: TemplatesService;
   reports: ReportsService;
+  exports: ExportService;
+  settings: SettingsService;
   audit: AuditService;
   dev: DevService;
 }

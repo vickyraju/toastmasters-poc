@@ -10,7 +10,9 @@ import { meetingsService } from "./meetings.service";
 import { membersService, positionsService } from "./members.service";
 import { templatesService } from "./templates.service";
 import { progressService } from "./progress.service";
+import { exportService } from "./export.service";
 import { reportsService } from "./reports.service";
+import { settingsService } from "./settings.service";
 import { rolesService } from "./roles.service";
 import { votesService } from "./votes.service";
 import {
@@ -47,6 +49,8 @@ export function createMockServices(
     positions: positionsService(ctx),
     templates: templatesService(ctx),
     reports: reportsService(ctx),
+    exports: exportService(ctx),
+    settings: settingsService(ctx),
     audit: auditService(ctx),
     dev: devService(ctx),
   };

@@ -993,14 +993,14 @@ describe("status preview", () => {
   it("lists warnings without writing; reports why a change is not allowed", async () => {
     await as("IL1003");
     const before = JSON.stringify(store.getState().meetings);
-    expect(await s.meetings.statusPreview(M2, "finalized")).toEqual({
+    expect(await s.meetings.statusPreview(M2, "finalized")).toMatchObject({
       ok: true,
       warnings: ["OPEN_ROLES"],
     });
     clock = Date.parse("2026-10-03T10:00:00+05:30");
     expect(
       await s.meetings.statusPreview("mtg-2026-09-25", "completed"),
-    ).toEqual({ ok: true, warnings: ["MISSING_REPORTS"] });
+    ).toMatchObject({ ok: true, warnings: ["MISSING_REPORTS"] });
     expect(await s.meetings.statusPreview(M2, "completed")).toEqual({
       ok: false,
       message: "That status change is not allowed.",
@@ -1771,5 +1771,252 @@ describe("M11 voting hardening (R-13, J-12)", () => {
         ),
     ).toHaveLength(7);
     expect((await s.votes.get(v.id)).turnout).toEqual({ cast: 0, eligible: 7 });
+  });
+});
+
+describe("M12 audit rows (S-16, FR-30)", () => {
+  it("each row has the actor's name and a readable target; newest first", async () => {
+    await as("IL1003");
+    const rows = await s.audit.list();
+    expect(rows).toHaveLength(7);
+    expect(rows[0]).toMatchObject({
+      action: "role.withdraw_request",
+      actorName: "Nisha Pillai",
+      target: "Evaluator 1, Fri 2 Oct",
+    });
+    const byAction = (a: string) => rows.find((r) => r.action === a)!;
+    expect(byAction("level.reject")).toMatchObject({
+      actorName: "Priya Raman",
+      target: "Ganesh Kumar, Level 2",
+      before: { status: "pending" },
+      after: { status: "rejected", rejectionReason: "Evaluation form missing" },
+    });
+    expect(byAction("meeting.cancel").target).toBe(
+      "Regular Meeting, Fri 11 Sep",
+    );
+    expect(rows.filter((r) => r.action === "vote.close")[0].target).toBe(
+      "Move meetings to 5 PM?",
+    );
+    expect(rows.map((r) => r.createdAt)).toEqual(
+      [...rows.map((r) => r.createdAt)].sort().reverse(),
+    );
+  });
+  it("filters by actor, action and an inclusive IST date range", async () => {
+    await as("IL1003");
+    expect(
+      (await s.audit.list({ actorId: "mem-1002" })).map((r) => r.action).sort(),
+    ).toEqual(["level.reject", "level.verify"]);
+    expect(await s.audit.list({ action: "vote.start" })).toHaveLength(2);
+    expect(
+      (await s.audit.list({ from: "2026-09-12", to: "2026-09-12" })).map(
+        (r) => r.action,
+      ),
+    ).toEqual(["vote.close"]);
+    expect(await s.audit.list({ from: "2027-01-01" })).toEqual([]);
+  });
+  it("new actions appear with readable targets (member add, position change, theme)", async () => {
+    await as("IL1001");
+    await s.members.add({
+      employeeId: "IL5001",
+      name: "Zed",
+      email: "zed@example.com",
+      currentLevel: 1,
+    } as never);
+    await s.positions.assign("saa", null);
+    const rows = await s.audit.list();
+    expect(rows.find((r) => r.action === "member.add")?.target).toBe(
+      "Zed (IL5001)",
+    );
+    expect(rows.find((r) => r.action === "position.remove")?.target).toBe(
+      "SAA",
+    );
+  });
+  it("a denied route is listed with its path; members cannot read the log", async () => {
+    await as("IL1009");
+    await s.audit.recordDenied("/audit");
+    expect(await code(s.audit.list())).toBe("FORBIDDEN");
+    await s.auth.signOut();
+    await as("IL1003");
+    expect(
+      (await s.audit.list({ action: "permission.denied" }))[0],
+    ).toMatchObject({ actorName: "Mohammed Faisal", target: "/audit" });
+  });
+});
+
+describe("M12 export (S-17, FR-31)", () => {
+  const range = { from: "2026-07-03", to: "2026-10-01" };
+  it("meeting history: one row per meeting in the range with status and lifecycle dates (IST)", async () => {
+    await as("IL1006");
+    const r = await s.exports.csv("meetings", range);
+    expect(r.filename).toBe("meetings-2026-10-01.csv");
+    const lines = r.csv.trimEnd().split("\r\n");
+    expect(lines[0]).toBe(
+      "Meeting ID,Title,Type,Status,Starts (IST),Ends (IST),Venue,Roles filled,Roles total,Theme,Cancelled reason,Completed at (IST)",
+    );
+    expect(r.rows).toBe(3); // 11, 18 and 25 Sep; 2 Oct starts after the range end
+    expect(
+      lines.some((l) =>
+        l.startsWith(
+          "mtg-2026-09-11,Regular Meeting,Regular Meeting,cancelled,2026-09-11 16:00",
+        ),
+      ),
+    ).toBe(true);
+    expect(lines.some((l) => l.includes("mtg-2026-10-02"))).toBe(false);
+  });
+  it("roles: one row per filled slot, with the member's name and employee id", async () => {
+    await as("IL1006");
+    const r = await s.exports.csv("roles", {
+      from: "2026-10-02",
+      to: "2026-10-02",
+    });
+    const lines = r.csv.trimEnd().split("\r\n");
+    expect(lines[0]).toBe(
+      "Meeting date (IST),Meeting,Status,Role,Member,Employee ID,Assigned at (IST)",
+    );
+    expect(r.rows).toBe(9);
+    expect(
+      lines.some((l) => l.includes("Speaker 1,Mohammed Faisal,IL1009")),
+    ).toBe(true);
+    expect(lines.some((l) => l.includes("Grammarian"))).toBe(false); // open slots are not assignments
+  });
+  it("progress: levels and projects by completed date, with status and verifier", async () => {
+    await as("IL1006");
+    const r = await s.exports.csv("progress", {
+      from: "2026-06-01",
+      to: "2026-10-01",
+    });
+    const lines = r.csv.trimEnd().split("\r\n");
+    expect(lines[0]).toBe(
+      "Member,Employee ID,Pathway,Kind,Level,Project,Completed on,Status,Verified by,Verified at (IST),Rejection reason",
+    );
+    expect(r.rows).toBe(4);
+    expect(
+      lines.some(
+        (l) =>
+          l.startsWith(
+            "Ganesh Kumar,IL1015,Persuasive Influence,level,2,,2026-08-08,rejected,Priya Raman",
+          ) && l.endsWith("Evaluation form missing"),
+      ),
+    ).toBe(true);
+  });
+  it("an empty range returns zero rows and no file body; bad ranges and members are refused", async () => {
+    await as("IL1006");
+    expect(
+      await s.exports.csv("roles", { from: "2020-01-01", to: "2020-01-31" }),
+    ).toMatchObject({ rows: 0 });
+    await expect(
+      s.exports.csv("roles", { from: "2026-10-02", to: "2026-10-01" }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      s.exports.csv("roles", { from: "x", to: "y" }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(await code(s.exports.csv("roles", range))).toBe("FORBIDDEN");
+  });
+  it("a name that looks like a formula is neutralised in the file", async () => {
+    await as("IL1003");
+    await s.members.update("mem-1009", { name: '=HYPERLINK("http://x")' });
+    const r = await s.exports.csv("roles", {
+      from: "2026-10-02",
+      to: "2026-10-02",
+    });
+    expect(r.csv).toContain('"\'=HYPERLINK(""http://x"")"');
+    expect(r.csv).not.toMatch(/,=HYPERLINK/);
+  });
+});
+
+describe("M12 notification preferences (S-18, FR-40)", () => {
+  it("lists all 17 types; the five locked ones are always on", async () => {
+    await as("IL1009");
+    const p = await s.settings.notificationPrefs();
+    expect(p).toHaveLength(17);
+    expect(p.filter((x) => x.locked).map((x) => x.code)).toEqual([
+      "N-03",
+      "N-04",
+      "N-07",
+      "N-14",
+      "N-17",
+    ]);
+    expect(p.every((x) => x.enabled)).toBe(true);
+  });
+  it("opting out of N-05 stops it; a locked type cannot be switched off", async () => {
+    await as("IL1009");
+    await s.settings.savePrefs({ "N-05": false });
+    expect(
+      (await s.settings.notificationPrefs()).find((x) => x.code === "N-05")
+        ?.enabled,
+    ).toBe(false);
+    await expect(s.settings.savePrefs({ "N-07": false })).rejects.toMatchObject(
+      { code: "VALIDATION" },
+    );
+    await s.auth.signOut();
+    await as("IL1006"); // Sneha is TMOD of 9 Oct
+    await s.meetings.publishTheme("mtg-2026-10-09", {
+      theme: "Hope",
+      welcomeNote: null,
+      wordOfTheDay: null,
+      wordMeaning: null,
+    });
+    const got = (id: string) =>
+      store
+        .getState()
+        .notifications.some(
+          (n) => n.memberId === id && n.code === "N-05" && /Hope/.test(n.title),
+        );
+    expect(got("mem-1009")).toBe(false); // opted out
+    expect(got("mem-1010")).toBe(true);
+    await s.auth.signOut();
+    await as("IL1009");
+    await s.settings.savePrefs({ "N-05": true });
+    expect(
+      (await s.settings.notificationPrefs()).find((x) => x.code === "N-05")
+        ?.enabled,
+    ).toBe(true);
+  });
+  it("a locked notification is delivered even if a stale preference row says off", async () => {
+    await as("IL1009");
+    store.setState((d) => ({
+      notifPrefs: [
+        ...d.notifPrefs,
+        { memberId: "mem-1009", code: "N-07", enabled: false },
+      ],
+    }));
+    await s.auth.signOut();
+    await as("IL1003");
+    await s.roles.assign(slot("grammarian"), "mem-1009");
+    expect(
+      store
+        .getState()
+        .notifications.some(
+          (n) =>
+            n.memberId === "mem-1009" &&
+            n.code === "N-07" &&
+            /Grammarian/.test(n.title),
+        ),
+    ).toBe(true);
+  });
+});
+
+describe("M12 status preview details", () => {
+  it("names the open roles and the missing reports so the warning can list them", async () => {
+    await as("IL1003");
+    const open = await s.meetings.statusPreview(M2, "finalized");
+    expect(open).toMatchObject({
+      ok: true,
+      warnings: ["OPEN_ROLES"],
+      openRoles: ["Evaluator 2", "Evaluator 3", "Grammarian"],
+    });
+    clock = Date.parse("2026-10-03T10:00:00+05:30");
+    const done = await s.meetings.statusPreview("mtg-2026-09-25", "completed");
+    expect(done).toMatchObject({
+      ok: true,
+      warnings: ["MISSING_REPORTS"],
+      missingReports: [
+        "General Evaluator (Karthik Subramanian)",
+        "Timer (Aditya Kulkarni)",
+        "Grammarian (Sneha Iyer)",
+      ],
+    });
   });
 });

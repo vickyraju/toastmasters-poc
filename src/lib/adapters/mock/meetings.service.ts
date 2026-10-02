@@ -360,10 +360,30 @@ export function meetingsService({ store, call }: Ctx): MeetingsService {
           actor,
           status === "completed" ? "meeting.complete" : "meeting.status",
         );
+        const slots = d.meetingRoles
+          .filter((s) => s.meetingId === id)
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+        const holder = (memberId: string | null) =>
+          memberId
+            ? (d.members.find((m) => m.id === memberId)?.name ?? "")
+            : "no holder";
         try {
+          const r = transition(d, actor.id, id, status, reason);
           return {
             ok: true as const,
-            warnings: transition(d, actor.id, id, status, reason).warnings,
+            warnings: r.warnings,
+            openRoles: slots
+              .filter((s) => s.status === "open")
+              .map((s) => s.label),
+            missingReports: slots
+              .filter(
+                (s) =>
+                  tmplOf(d, s).reportKind &&
+                  !d.reports.some(
+                    (r) => r.meetingRoleId === s.id && r.submittedAt,
+                  ),
+              )
+              .map((s) => `${tmplOf(d, s).name} (${holder(s.memberId)})`),
           };
         } catch (e) {
           if (e instanceof AppError && e.code !== "NOT_FOUND")

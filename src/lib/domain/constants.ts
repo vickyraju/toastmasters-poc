@@ -143,3 +143,57 @@ export const MAX_LEVEL = 5;
 export const DEFAULT_WITHDRAWAL_CUTOFF_HOURS = 24;
 export const DEFAULT_TIMER_GRACE_SECONDS = 30;
 export const CLUB_TIMEZONE = "Asia/Kolkata";
+
+/** Settings labels, from the triggers in flow.md section 7. */
+export const NOTIF_LABELS: Record<(typeof NOTIF_CODES)[number], string> = {
+  "N-01": "Meeting opened for roles",
+  "N-02": "Meeting finalized",
+  "N-03": "Meeting rescheduled",
+  "N-04": "Meeting cancelled",
+  "N-05": "Theme or word of the day published",
+  "N-06": "Report due",
+  "N-07": "Role assigned, changed or removed by ExComm",
+  "N-08": "New meeting type, template or role added",
+  "N-09": "Level completion logged (VPE)",
+  "N-10": "Level verified or rejected",
+  "N-11": "Position assigned or removed",
+  "N-12": "Vote started",
+  "N-13": "Vote closed",
+  "N-14": "Reminders for your own roles",
+  "N-15": "Unfilled roles 48 hours before a meeting (ExComm)",
+  "N-16": "Swap requested, accepted or declined",
+  "N-17": "Withdrawal request decided",
+};
+
+/** Readable names for the audit action chips (S-16). */
+export const AUDIT_ACTION_LABELS: Record<
+  (typeof AUDIT_ACTIONS)[number],
+  string
+> = {
+  "role.assign": "Role assigned",
+  "role.reassign": "Role reassigned",
+  "role.override": "Role override",
+  "role.withdraw": "Role withdrawn",
+  "role.withdraw_request": "Withdrawal requested",
+  "role.withdraw_decision": "Withdrawal decided",
+  "role.swap": "Roles swapped",
+  "meeting.create": "Meeting created",
+  "meeting.update": "Meeting updated",
+  "meeting.reschedule": "Meeting rescheduled",
+  "meeting.cancel": "Meeting cancelled",
+  "meeting.status": "Meeting status changed",
+  "member.add": "Member added",
+  "member.update": "Member updated",
+  "member.remove": "Member removed",
+  "position.assign": "Position assigned",
+  "position.remove": "Position removed",
+  "president.transfer": "Presidency transferred",
+  "level.verify": "Level verified",
+  "level.reject": "Level rejected",
+  "vote.start": "Vote started",
+  "vote.cast": "Vote cast",
+  "vote.close": "Vote closed",
+  "template.change": "Template changed",
+  "settings.change": "Settings changed",
+  "permission.denied": "Access denied",
+};

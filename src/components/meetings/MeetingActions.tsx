@@ -14,7 +14,14 @@ import type { MeetingStatus } from "@/lib/domain/types";
 import type { LifecycleWarning } from "@/lib/domain/rules/lifecycle";
 
 type Pending =
-  { to: MeetingStatus; warnings: LifecycleWarning[] } | "cancel" | null;
+  | {
+      to: MeetingStatus;
+      warnings: LifecycleWarning[];
+      openRoles: string[];
+      missingReports: string[];
+    }
+  | "cancel"
+  | null;
 
 const TEXT: Record<
   "open" | "reopen" | "finalized" | "completed",
@@ -72,7 +79,12 @@ export function MeetingActions({
       {
         onSuccess: (r) =>
           r.ok
-            ? setPending({ to, warnings: r.warnings })
+            ? setPending({
+                to,
+                warnings: r.warnings,
+                openRoles: r.openRoles,
+                missingReports: r.missingReports,
+              })
             : toast.error(r.message),
         onError: (e) => toast.error(e.message),
       },
@@ -139,12 +151,20 @@ export function MeetingActions({
           }
         >
           {pending.warnings.map((w) => (
-            <p
+            <div
               key={w}
-              className="rounded-md bg-warning-bg px-3 py-2 text-sm text-warning"
+              className="space-y-1 rounded-md bg-warning-bg px-3 py-2 text-sm text-warning"
             >
-              {WARNING_TEXT[w]}
-            </p>
+              <p>{WARNING_TEXT[w]}</p>
+              <ul className="list-disc pl-5">
+                {(w === "OPEN_ROLES"
+                  ? pending.openRoles
+                  : pending.missingReports
+                ).map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+            </div>
           ))}
         </ConfirmDialog>
       ) : null}
