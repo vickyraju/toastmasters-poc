@@ -168,6 +168,20 @@ Custom roles added for the day: Chief Judge, Contestant x4, Sergeant-at-Arms. No
 
 ---
 
+### 6a. Sample progress history (added 2026-10-02)
+
+So profiles and progress screens look lived-in. Names are illustrative, like the Pathways data in 4.4. All levels are verified by Priya; all projects are counted.
+
+| Member | Levels verified | Projects counted |
+| --- | --- | --- |
+| Ananya Das | 1 (12 Mar), 2 (18 Jun) | Ice Breaker, Level 2 speech (generic) |
+| Suresh Babu | 1 (14 Feb), 2 (22 May) and the existing 3 | Ice Breaker, Level 2 and Level 3 speech (generic) |
+| Mohammed Faisal | 1 (8 May) | Ice Breaker, Level 2 speech (generic) |
+| Priya Raman | 4 (3 Feb), and the existing 5 | none |
+| Sneha Iyer, Nisha Pillai | none | Ice Breaker each |
+
+Lakshmi Narayanan, Meera Joshi, Aditya Kulkarni and the others stay empty, so S-09's empty state and "sparse data" examples still exist.
+
 ## 7. Tasks and notifications by persona (initial state)
 
 Open tasks:
@@ -216,7 +230,7 @@ Timer rows: Speaker A (5:00 to 7:00) took 5:20, green; Speaker B took 6:10, yell
 1. Sign in as **IL1013**: Home shows T-01 and T-04, next meeting card for 2 Oct with "Your role: Ah-Counter", two unread notifications, bell badge 3. Answer the swap (accept): both roles change, Vikram gets N-16, task T-04 disappears.
 2. Sign in as **IL1012**: fill in the speech title; T-06 disappears.
 3. Sign in as **IL1010** and try Evaluator 2 for own speech: blocked with an explanation.
-4. Sign in as **IL1009** and take Evaluator 2: succeeds; try Evaluator 3: blocked (level).
+4. Sign in as **IL1009**: Evaluator 3 is blocked (needs level 3) and Evaluator 2 is refused because he already holds Speaker 1 (one main role per meeting, R-02). Sign in as **IL1005** (Rahul, level 2, no main role on 2 Oct) and take Evaluator 2: succeeds. *(Changed 2026-10-02; the earlier version had IL1009 taking Evaluator 2, which R-02 forbids.)*
 5. Sign in as **IL1002** (VPE): verify Ananya's Level 3, her level becomes 4 and she gets N-10; approve Nisha's withdrawal, slot opens and Nisha gets N-17.
 6. Sign in as **IL1004**: cast a vote, turnout becomes 5/7, results not shown.
 7. Sign in as **IL1001**: close the vote, results appear for voters; open S-13 and see Positions; name the next President.

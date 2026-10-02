@@ -1323,10 +1323,13 @@ describe("M9 progress", () => {
       completedOn: "2026-09-30",
     });
     expect(again.status).toBe("pending");
-    expect((await s.progress.listMine()).map((c) => c.status).sort()).toEqual([
-      "pending",
-      "rejected",
-    ]);
+    // her Level 3 has a rejected and a pending row (her older levels and projects are sample history)
+    expect(
+      (await s.progress.listMine())
+        .filter((c) => c.kind === "level" && c.level === 3)
+        .map((c) => c.status)
+        .sort(),
+    ).toEqual(["pending", "rejected"]);
   });
 });
 
@@ -1438,9 +1441,18 @@ describe("M10 members (R-16)", () => {
       ["mtg-2026-09-25", "Table Topics Master"],
       ["mtg-2026-10-02", "General Evaluator"],
     ]);
-    expect(p.completions.map((c) => [c.level, c.status])).toEqual([
+    // Suresh: levels 1 to 3 verified, plus sample projects
+    expect(
+      p.completions
+        .filter((c) => c.kind === "level")
+        .map((c) => [c.level, c.status])
+        .sort(),
+    ).toEqual([
+      [1, "verified"],
+      [2, "verified"],
       [3, "verified"],
     ]);
+    expect(p.projectsCompleted).toBe(3);
     expect(await code(s.members.profile("mem-1010"))).toBe("FORBIDDEN");
     await s.auth.signOut();
     await as("IL1003");
@@ -1889,7 +1901,7 @@ describe("M12 export (S-17, FR-31)", () => {
     expect(lines[0]).toBe(
       "Member,Employee ID,Pathway,Kind,Level,Project,Completed on,Status,Verified by,Verified at (IST),Rejection reason",
     );
-    expect(r.rows).toBe(4);
+    expect(r.rows).toBe(8); // the four seeded rows plus four from sample history
     expect(
       lines.some(
         (l) =>

@@ -87,7 +87,10 @@ describe("S-09 My progress", () => {
         WAIT,
       ),
     ).toBeInTheDocument();
-    expect(await getServices().progress.listMine()).toEqual([]);
+    // nothing new was saved: Mohammed has only his three seeded rows, none at level 4
+    expect(
+      (await getServices().progress.listMine()).filter((c) => c.level === 4),
+    ).toEqual([]);
   });
 
   it("a future date is blocked by the picker's max and by the check", async () => {
@@ -129,7 +132,7 @@ describe("S-09 My progress", () => {
       await within(dialog).findByText("Enter the project name.", {}, WAIT),
     ).toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText("Project name (required)"), {
-      target: { value: "Ice Breaker" },
+      target: { value: "Pitch Practice" },
     });
     fireEvent.click(
       within(dialog).getByRole("button", { name: "Log project" }),
@@ -142,7 +145,11 @@ describe("S-09 My progress", () => {
       await screen.findByRole("tab", { name: "Projects" }, WAIT),
     );
     fireEvent.click(screen.getByRole("tab", { name: "Projects" }));
-    const row = await screen.findByRole("row", { name: /Ice Breaker/ }, WAIT);
+    const row = await screen.findByRole(
+      "row",
+      { name: /Pitch Practice/ },
+      WAIT,
+    );
     expect(row).toHaveTextContent("Counted");
   });
 

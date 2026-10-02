@@ -553,6 +553,87 @@ const audit = (
   createdAt: at,
 });
 
+const vpeId = mem(1002);
+/** Verified earlier levels and counted projects. Names are illustrative, like the rest of the Pathways data. */
+function sampleHistory(): MockData["completions"] {
+  let n = 100;
+  const level = (who: number, pathway: string, lv: number, on: string) => ({
+    id: `cmp-${++n}`,
+    memberId: mem(who),
+    kind: "level" as const,
+    pathway,
+    level: lv,
+    projectName: null,
+    completedOn: on,
+    proofFileId: null,
+    status: "verified" as const,
+    verifiedBy: vpeId,
+    verifiedAt: iso(on, "12:00"),
+    rejectionReason: null,
+  });
+  const project = (
+    who: number,
+    pathway: string,
+    lv: number,
+    name: string,
+    on: string,
+  ) => ({
+    id: `cmp-${++n}`,
+    memberId: mem(who),
+    kind: "project" as const,
+    pathway,
+    level: lv,
+    projectName: name,
+    completedOn: on,
+    proofFileId: null,
+    status: "counted" as const,
+    verifiedBy: null,
+    verifiedAt: null,
+    rejectionReason: null,
+  });
+  return [
+    level(1008, "Presentation Mastery", 1, "2026-03-12"),
+    level(1008, "Presentation Mastery", 2, "2026-06-18"),
+    project(1008, "Presentation Mastery", 1, "Ice Breaker", "2026-02-20"),
+    project(
+      1008,
+      "Presentation Mastery",
+      2,
+      "Level 2 speech (generic)",
+      "2026-05-29",
+    ),
+    level(1011, "Strategic Relationships", 1, "2026-02-14"),
+    level(1011, "Strategic Relationships", 2, "2026-05-22"),
+    project(1011, "Strategic Relationships", 1, "Ice Breaker", "2026-01-30"),
+    project(
+      1011,
+      "Strategic Relationships",
+      2,
+      "Level 2 speech (generic)",
+      "2026-04-17",
+    ),
+    project(
+      1011,
+      "Strategic Relationships",
+      3,
+      "Level 3 speech (generic)",
+      "2026-08-21",
+    ),
+    level(1009, "Dynamic Leadership", 1, "2026-05-08"),
+    project(1009, "Dynamic Leadership", 1, "Ice Breaker", "2026-04-24"),
+    project(
+      1009,
+      "Dynamic Leadership",
+      2,
+      "Level 2 speech (generic)",
+      "2026-09-04",
+    ),
+    level(1002, "Presentation Mastery", 4, "2026-02-03"),
+    project(1006, "Motivational Strategies", 1, "Ice Breaker", "2026-03-27"),
+    project(1014, "Team Collaboration", 1, "Ice Breaker", "2026-06-05"),
+  ];
+}
+
 /** Builds the full mock dataset as of `nowMs` (the mock clock's start). */
 export function createSeed(nowMs: number): MockData {
   const at = (date: string, time: string) => iso(date, time);
@@ -811,6 +892,8 @@ export function createSeed(nowMs: number): MockData {
         verifiedAt: at("2026-08-10", "11:00"),
         rejectionReason: "Evaluation form missing",
       },
+      // Sample history so profiles and progress screens look lived-in (added 2026-10-02, see mock-data.md 6a).
+      ...sampleHistory(),
     ],
     swaps: [
       {
