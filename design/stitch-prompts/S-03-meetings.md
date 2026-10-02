@@ -10,7 +10,7 @@ row (type, status), then either a month calendar grid or a list table. ExComm/Pr
 extra buttons top-right of the header: "New meeting" and "Templates".
 
 ## Exact content
-Use the real seeded meeting set (all IST, venue "Conference Room B, Inception Labs, Chennai",
+Use the real seeded meeting set (all IST, venue "Conference Room B, Chennai",
 link `https://teams.example.com/meet/club`) so the calendar/list isn't empty:
 | Date | Title | Status | Roles filled |
 | --- | --- | --- | --- |

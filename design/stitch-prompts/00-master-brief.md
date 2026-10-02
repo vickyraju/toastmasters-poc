@@ -8,7 +8,7 @@ colours, type, spacing and navigation identical across all 23 screens.
 
 ```
 Design a clean, calm, professional web app called "Club Hub" for a corporate Toastmasters club
-(Inception Labs Toastmasters, about 30 to 60 members). Desktop-first at 1440px wide, with a fully
+(Toastmasters Club, about 30 to 60 members). Desktop-first at 1440px wide, with a fully
 usable phone layout at 390px. Members use it weekly to sign up for meeting roles, submit meeting
 reports, and log Pathways progress; club officers (ExComm and President) also manage meetings,
 members and votes.

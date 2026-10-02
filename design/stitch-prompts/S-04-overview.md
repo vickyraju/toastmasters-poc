@@ -14,7 +14,7 @@ filled bar.
 
 ## Exact content
 Meeting `mtg-2026-10-02`, "Regular Meeting", status "Open for roles", Fri 2 Oct 4:00 PM IST,
-venue "Conference Room B, Inception Labs, Chennai" + link `https://teams.example.com/meet/club`.
+venue "Conference Room B, Chennai" + link `https://teams.example.com/meet/club`.
 - Theme: "New beginnings", welcome note present (one short paragraph, e.g. "Welcome back after the
   festival break — let's start strong."), word of the day "Embark", meaning "to begin a course of
   action" — all already published.
@@ -53,7 +53,7 @@ Context: Club Hub, a Toastmasters club web app. This is the Overview tab of the 
 screen for "Regular Meeting, Fri 2 Oct 4:00 PM IST", status Open for roles.
 
 Design a meeting-detail page. Header: title "Regular Meeting", status badge "Open for roles"
-(blue), date/time "Fri 2 Oct, 4:00 PM IST", venue "Conference Room B, Inception Labs, Chennai",
+(blue), date/time "Fri 2 Oct, 4:00 PM IST", venue "Conference Room B, Chennai",
 action buttons "Edit", "Finalize", "Cancel" (outline, red text) top right. Below the header, a
 horizontal lifecycle stepper with 4 steps — Draft, Open, Finalized, Completed — with "Open"
 highlighted in primary blue and a filled dot, the rest grey. Below that, a tab bar with 4 tabs:

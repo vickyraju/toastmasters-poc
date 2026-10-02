@@ -11,7 +11,7 @@ Location, Roles for this meeting, Agenda file. Sticky footer with two buttons: "
 
 ## Exact content
 Use the custom contest meeting as the realistic example, `mtg-2026-10-31`, "Area Speech Contest",
-type "Speech Contest", Sat 31 Oct, 10:00 AM, venue "Conference Room B, Inception Labs, Chennai".
+type "Speech Contest", Sat 31 Oct, 10:00 AM, venue "Conference Room B, Chennai".
 - **Basics:** Title field (pre-filled "Area Speech Contest"), Meeting type select (options:
   Regular Meeting, Speech Contest, Workshop, Joint Session — Speech Contest selected).
 - **Date and time:** date picker (31 Oct 2026), start time (10:00 AM), duration (150 min,
@@ -59,7 +59,7 @@ officers to create a custom meeting or edit an existing one's roles and details 
 Design a single-column form page, max width about 760px, centred, with section cards in this
 order: "Basics" (title input pre-filled "Area Speech Contest", meeting-type select showing "Speech
 Contest" selected); "Date and time" (date picker "31 Oct 2026", time picker "10:00 AM", duration
-input "150 min"); "Location" (venue text field "Conference Room B, Inception Labs, Chennai",
+input "150 min"); "Location" (venue text field "Conference Room B, Chennai",
 meeting-link field, small helper text "At least one of venue or link is required before this
 meeting can leave Draft"); "Roles for this meeting" — a checklist with count-stepper rows: TMOD
 (x1), Timer (x1), Ah-Counter (x1), then three custom rows with a small "Custom" tag: Chief Judge

@@ -267,7 +267,7 @@ const SMALL_ROLES: [string, number][] = [
 ];
 
 // ---- Meetings (section 5) ----
-const VENUE = "Conference Room B, Inception Labs, Chennai";
+const VENUE = "Conference Room B, Chennai";
 const LINK = "https://teams.example.com/meet/club";
 
 type Filled = Record<string, number>; // slot key -> member number
@@ -922,7 +922,7 @@ export function createSeed(nowMs: number): MockData {
     ],
     settings: {
       id: 1,
-      clubName: "Inception Labs Toastmasters (demo)",
+      clubName: "Toastmasters Club (demo)",
       withdrawalCutoffHours: 24,
       proofRequired: false,
       consecutiveRepeatLimit: null,

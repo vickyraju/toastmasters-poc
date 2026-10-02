@@ -23,7 +23,7 @@ Demo values for `.env.local` (names and meanings are in `.env.example` and `arch
 NEXT_PUBLIC_DATA_MODE=mock
 NEXT_PUBLIC_DEMO_MODE=true
 NEXT_PUBLIC_MOCK_NOW=2026-10-01T18:00:00+05:30
-NEXT_PUBLIC_CLUB_NAME=Inception Labs Toastmasters (demo)
+NEXT_PUBLIC_CLUB_NAME=Toastmasters Club (demo)
 ```
 
 `NEXT_PUBLIC_DEMO_MODE=true` shows the **Demo accounts** list on the sign-in page, the Demo ribbon, and the

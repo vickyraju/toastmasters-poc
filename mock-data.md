@@ -79,7 +79,7 @@ Regular Meeting = 12 slots: TMOD, GE, TTM, Speaker x3, Evaluator x3, Timer, Ah-C
 Agenda outline for Regular Meeting (seed `meeting_type_agenda_items`): 4:00 Opening and TMOD intro (5), 4:05 Word of the day (3), 4:08 Prepared speeches (21), 4:30 Table Topics (15), 4:45 Evaluations (15), 5:00 Reports (10), 5:10 Close (5).
 
 ### 4.3 Recurring template
-"Friday Regular Meeting": type Regular, weekday 5, start 16:00, 90 min, venue "Conference Room B, Inception Labs, Chennai", link "https://teams.example.com/meet/club", weeks_ahead 4, skip_dates empty (so the 16 Oct and 23 Oct drafts are generated).
+"Friday Regular Meeting": type Regular, weekday 5, start 16:00, 90 min, venue "Conference Room B, Chennai", link "https://teams.example.com/meet/club", weeks_ahead 4, skip_dates empty (so the 16 Oct and 23 Oct drafts are generated).
 
 ### 4.4 Project timings (illustrative, VERIFY with VPE)
 | Pathway | Level | Project (illustrative) | Min | Max |
@@ -95,7 +95,7 @@ Agenda outline for Regular Meeting (seed `meeting_type_agenda_items`): 4:00 Open
 Also one custom row "Workshop demo, 8:00 to 10:00" with `is_custom = true`.
 
 ### 4.5 Club settings
-Defaults from `schema.md` 3.14: withdrawal cutoff 24 h, proof not required, repeat limit off, grace 30 s, inactive after 60 days, generate 4 weeks ahead. Club name "Inception Labs Toastmasters (demo)".
+Defaults from `schema.md` 3.14: withdrawal cutoff 24 h, proof not required, repeat limit off, grace 30 s, inactive after 60 days, generate 4 weeks ahead. Club name "Toastmasters Club (demo)".
 
 ---
 
@@ -114,7 +114,7 @@ All times IST.
 | `mtg-2026-10-23` | Fri 23 Oct 4:00 PM | Regular Meeting | Regular | **Draft** (generated) | |
 | `mtg-2026-10-31` | Sat 31 Oct 10:00 AM | Area Speech Contest (custom) | Speech Contest | **Draft** | Custom meeting with custom roles |
 
-Venue for all: "Conference Room B, Inception Labs, Chennai"; link `https://teams.example.com/meet/club`. Theme examples: 18 Sep "Growth mindset", 25 Sep "Resilience", 2 Oct "New beginnings", 9 Oct none yet.
+Venue for all: "Conference Room B, Chennai"; link `https://teams.example.com/meet/club`. Theme examples: 18 Sep "Growth mindset", 25 Sep "Resilience", 2 Oct "New beginnings", 9 Oct none yet.
 
 ### 5.1 Main demo meeting `mtg-2026-10-02` (9 of 12 filled)
 Theme "New beginnings", word of the day "Embark" (meaning "to begin a course of action"), published, welcome note present, agenda file `agenda-2026-10-02.pdf` (a placeholder PDF at `public/mock/agenda-sample.pdf`).

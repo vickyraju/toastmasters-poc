@@ -2035,7 +2035,7 @@ describe("M12 status preview details", () => {
 
 describe("club settings (S-18, settings.club.edit)", () => {
   const good = {
-    clubName: "Inception Labs Toastmasters (demo)",
+    clubName: "Toastmasters Club (demo)",
     withdrawalCutoffHours: 12,
     proofRequired: true,
     consecutiveRepeatLimit: 2,

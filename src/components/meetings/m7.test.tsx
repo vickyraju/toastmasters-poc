@@ -50,7 +50,7 @@ describe("S-05 create the 31 Oct contest, open it, finalize it (M7 done-when)", 
       target: { value: "10:00" },
     });
     fireEvent.change(screen.getByLabelText("Venue"), {
-      target: { value: "Conference Room B, Inception Labs, Chennai" },
+      target: { value: "Conference Room B, Chennai" },
     });
     // the type pre-fills TMOD, Timer, Ah-Counter
     expect(screen.getByLabelText("Toastmaster of the Day")).toHaveValue(1);

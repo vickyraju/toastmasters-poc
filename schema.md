@@ -247,7 +247,7 @@ Verifying a level sets `members.current_level = level + 1` (max 5) in the same t
 | Column | Type | Default |
 | --- | --- | --- |
 | id | int PK | 1 |
-| club_name | text | "Inception Labs Toastmasters" (working) |
+| club_name | text | "Toastmasters Club" (working) |
 | withdrawal_cutoff_hours | smallint | 24 |
 | proof_required | bool | false |
 | consecutive_repeat_limit | smallint NULL | NULL (off) |

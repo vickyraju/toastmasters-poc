@@ -11,7 +11,7 @@ table with an "Add" button that opens a dialog. Recurring templates tab is the d
 ## Exact content
 **Recurring templates tab** (default view): one seeded row — "Friday Regular Meeting", type
 Regular Meeting, weekday Friday, start time 16:00, duration 90 min, venue "Conference Room B,
-Inception Labs, Chennai", weeks ahead 4, Active toggle on. "Add template" button top-right opens a
+Chennai", weeks ahead 4, Active toggle on. "Add template" button top-right opens a
 dialog with fields: Name, Meeting type (select), Weekday (select), Start time, Duration, Venue,
 Meeting link, Weeks ahead (number), Skip dates (multi date picker).
 **Meeting types tab:** rows for Regular Meeting (90 min), Speech Contest (150 min), Workshop
