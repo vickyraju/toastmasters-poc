@@ -101,3 +101,34 @@ export function expireSlotRequests(
     }
   }
 }
+
+const ALLOWED_FILES: Record<string, string[]> = {
+  "application/pdf": ["pdf"],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
+    "docx",
+  ],
+  "image/png": ["png"],
+  "image/jpeg": ["jpg", "jpeg"],
+};
+const MAX_BYTES = 10 * 1024 * 1024;
+
+/** R-14: PDF, DOCX, PNG or JPG, up to 10 MB, checked by type and extension. Returns a clean file name. */
+export function validateUpload(file: {
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+}): string {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (!(ALLOWED_FILES[file.mimeType] ?? []).includes(ext))
+    throw new AppError("VALIDATION", "Upload a PDF, DOCX, PNG or JPG file.", {
+      fields: { file: "Upload a PDF, DOCX, PNG or JPG file." },
+    });
+  if (file.sizeBytes > MAX_BYTES)
+    throw new AppError("VALIDATION", "The file must be 10 MB or smaller.", {
+      fields: { file: "The file must be 10 MB or smaller." },
+    });
+  return file.name
+    .split(/[\\/]/)
+    .pop()!
+    .replace(/[^A-Za-z0-9._-]/g, "_");
+}

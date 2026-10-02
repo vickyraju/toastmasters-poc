@@ -1220,3 +1220,112 @@ describe("M8 theme (J-06)", () => {
     ).toBe("FORBIDDEN");
   });
 });
+
+describe("M9 progress", () => {
+  it("proof upload: same file rules as agendas (R-14); the file attaches to a level log and shows in the queue", async () => {
+    await as("IL1010"); // Lakshmi, level 1
+    expect(
+      await code(
+        s.progress.uploadProof({
+          name: "p.exe",
+          mimeType: "application/pdf",
+          sizeBytes: 10,
+        }),
+      ),
+    ).toBe("VALIDATION");
+    expect(
+      await code(
+        s.progress.uploadProof({
+          name: "p.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 11 * 1024 * 1024,
+        }),
+      ),
+    ).toBe("VALIDATION");
+    const f = await s.progress.uploadProof({
+      name: "../my proof.png",
+      mimeType: "image/png",
+      sizeBytes: 100,
+      url: "blob:x",
+    });
+    expect(f.originalName).toBe("my_proof.png");
+    const c = await s.progress.log({
+      kind: "level",
+      pathway: "Presentation Mastery",
+      level: 1,
+      completedOn: "2026-09-30",
+      proofFileId: f.id,
+    });
+    expect(c.status).toBe("pending");
+    await s.auth.signOut();
+    await as("IL1003");
+    expect(
+      (await s.progress.verifyQueue()).find((q) => q.id === c.id)?.proofName,
+    ).toBe("my_proof.png");
+    expect(
+      (await s.progress.verifyQueue()).find((q) => q.id === "cmp-001")
+        ?.proofName,
+    ).toBeNull();
+  });
+  it("a proof must belong to the member logging it; required when the club setting says so", async () => {
+    await as("IL1010");
+    const f = await s.progress.uploadProof({
+      name: "p.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 100,
+    });
+    await s.auth.signOut();
+    await as("IL1009");
+    await expect(
+      s.progress.log({
+        kind: "level",
+        pathway: "x",
+        level: 2,
+        completedOn: "2026-09-30",
+        proofFileId: f.id,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    store.setState((d) => ({
+      settings: { ...d.settings, proofRequired: true },
+    }));
+    await expect(
+      s.progress.log({
+        kind: "level",
+        pathway: "x",
+        level: 2,
+        completedOn: "2026-09-30",
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      message: "Attach proof of completion.",
+    });
+  });
+  it("club table: roles taken and speeches come from Completed meetings only", async () => {
+    await as("IL1003");
+    const rows = await s.progress.clubTable();
+    const row = (id: string) => rows.find((r) => r.member.employeeId === id)!;
+    expect(row("IL1012").rolesTaken).toBe(1); // Meera spoke on 18 Sep
+    expect(row("IL1012").speeches).toBe(1);
+    expect(row("IL1011").rolesTaken).toBe(1); // Suresh: General Evaluator on 18 Sep
+    expect(row("IL1011").speeches).toBe(0);
+    expect(row("IL1008").rolesTaken).toBe(1); // Ananya: TTM on 18 Sep
+    expect(row("IL1015").inactive).toBe(true);
+  });
+  it("rejecting then logging the same level again is allowed", async () => {
+    await as("IL1002");
+    await s.progress.decide("cmp-001", "reject", "Evaluation form missing");
+    await s.auth.signOut();
+    await as("IL1008");
+    const again = await s.progress.log({
+      kind: "level",
+      pathway: "Presentation Mastery",
+      level: 3,
+      completedOn: "2026-09-30",
+    });
+    expect(again.status).toBe("pending");
+    expect((await s.progress.listMine()).map((c) => c.status).sort()).toEqual([
+      "pending",
+      "rejected",
+    ]);
+  });
+});

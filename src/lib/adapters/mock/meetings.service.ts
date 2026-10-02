@@ -21,19 +21,10 @@ import {
   meetingOf,
   tmodHolder,
   tmplOf,
+  validateUpload,
 } from "./helpers";
 import { buildSlots } from "./slots";
 import { newId as newRoleId } from "../../domain/ids";
-
-const ALLOWED_FILES: Record<string, string[]> = {
-  "application/pdf": ["pdf"],
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
-    "docx",
-  ],
-  "image/png": ["png"],
-  "image/jpeg": ["jpg", "jpeg"],
-};
-const MAX_BYTES = 10 * 1024 * 1024;
 
 const validation = (fields: Record<string, string>) =>
   new AppError("VALIDATION", Object.values(fields)[0] ?? "Check the form.", {
@@ -439,16 +430,8 @@ export function meetingsService({ store, call }: Ctx): MeetingsService {
           const { actor } = me(d, sid);
           assertCan(actor, "meeting.agenda.upload");
           const m = meetingOf(d, id);
-          const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-          if (!(ALLOWED_FILES[file.mimeType] ?? []).includes(ext))
-            throw validation({ file: "Upload a PDF, DOCX, PNG or JPG file." });
-          if (file.sizeBytes > MAX_BYTES)
-            throw validation({ file: "The file must be 10 MB or smaller." });
+          const safe = validateUpload(file);
           const at = now();
-          const safe = file.name
-            .split(/[\\/]/)
-            .pop()!
-            .replace(/[^A-Za-z0-9._-]/g, "_");
           const rec = {
             id: newId("file"),
             storageKey: file.url ?? `mock/${id}/${safe}`,

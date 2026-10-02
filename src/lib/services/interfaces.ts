@@ -300,10 +300,13 @@ export interface ClubProgressRow {
 }
 export interface VerifyQueueItem extends Completion {
   memberName: string;
+  proofName: string | null;
 }
 
 export interface ProgressService {
   listMine(): Promise<Completion[]>;
+  /** Proof for a level completion (optional unless the club requires it). Same rules as agenda files (R-14). */
+  uploadProof(file: UploadFile): Promise<FileRecord>;
   log(input: LogCompletionInput): Promise<Completion>;
   clubTable(): Promise<ClubProgressRow[]>;
   verifyQueue(): Promise<VerifyQueueItem[]>;

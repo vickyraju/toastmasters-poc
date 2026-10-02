@@ -11,7 +11,7 @@ import { now } from "../../time/clock";
 import { istDate } from "../../time/ist";
 import type { Completion } from "../../domain/types";
 import { assertCan, me, mutate, type Ctx } from "./runtime";
-import { log, memberName, touch } from "./helpers";
+import { log, memberName, touch, validateUpload } from "./helpers";
 
 const invalid = (field: string, message: string) =>
   new AppError("VALIDATION", message, { fields: { [field]: message } });
@@ -27,6 +27,25 @@ export function progressService({ store, call }: Ctx): ProgressService {
           .sort((a, b) => b.completedOn.localeCompare(a.completedOn));
       }),
 
+    uploadProof: (file) =>
+      call((sid) =>
+        mutate(store, (d) => {
+          const { member } = me(d, sid);
+          const safe = validateUpload(file);
+          const rec = {
+            id: newId("file"),
+            storageKey: file.url ?? `mock/proof/${safe}`,
+            originalName: safe,
+            mimeType: file.mimeType,
+            sizeBytes: file.sizeBytes,
+            uploadedBy: member.id,
+            createdAt: now().toISOString(),
+          };
+          d.files.push(rec);
+          return rec;
+        }),
+      ),
+
     log: (input) =>
       call((sid) =>
         mutate(store, (d): Completion => {
@@ -37,6 +56,11 @@ export function progressService({ store, call }: Ctx): ProgressService {
             throw invalid("projectName", "Enter the project name.");
           if (!input.pathway.trim())
             throw invalid("pathway", "Choose a pathway.");
+          if (input.proofFileId) {
+            const proof = d.files.find((f) => f.id === input.proofFileId);
+            if (!proof || proof.uploadedBy !== member.id)
+              throw invalid("proof", "Attach a file you uploaded.");
+          }
           const check = validateLevelLog({
             currentLevel: member.currentLevel,
             level: input.level,
@@ -157,6 +181,8 @@ export function progressService({ store, call }: Ctx): ProgressService {
           .map((c): VerifyQueueItem => ({
             ...c,
             memberName: memberName(d, c.memberId),
+            proofName:
+              d.files.find((f) => f.id === c.proofFileId)?.originalName ?? null,
           }));
       }),
 
