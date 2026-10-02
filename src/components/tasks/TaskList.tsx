@@ -26,7 +26,9 @@ const ACTION: Record<TaskCode, { label: string; Icon: LucideIcon }> = {
   "T-08": { label: "Fill roles", Icon: UserPlus },
 };
 
-export function TaskRow({ task }: { task: Task }) {
+export function TaskRow({ task, nowIso }: { task: Task; nowIso?: string }) {
+  const overdue =
+    !!task.dueAt && !!nowIso && Date.parse(task.dueAt) < Date.parse(nowIso);
   const { label, Icon } = ACTION[task.code];
   return (
     <li className="flex flex-wrap items-center gap-3 py-3">
@@ -36,6 +38,11 @@ export function TaskRow({ task }: { task: Task }) {
         {task.dueAt ? (
           <p className="text-xs text-muted-foreground">
             Due {formatMeetingTime(task.dueAt)}
+            {overdue ? (
+              <span className="ml-2 rounded-full bg-danger-bg px-2 py-0.5 font-medium text-danger">
+                Overdue
+              </span>
+            ) : null}
           </p>
         ) : null}
       </div>
@@ -46,11 +53,17 @@ export function TaskRow({ task }: { task: Task }) {
   );
 }
 
-export function TaskList({ tasks }: { tasks: Task[] }) {
+export function TaskList({
+  tasks,
+  nowIso,
+}: {
+  tasks: Task[];
+  nowIso?: string;
+}) {
   return (
     <ul className="divide-y divide-border">
       {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} />
+        <TaskRow key={t.id} task={t} nowIso={nowIso} />
       ))}
     </ul>
   );

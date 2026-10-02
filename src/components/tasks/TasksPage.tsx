@@ -43,7 +43,7 @@ export function TasksPage() {
                     >
                       {title}
                     </h2>
-                    <TaskList tasks={g[key]} />
+                    <TaskList tasks={g[key]} nowIso={nowQ.data!} />
                   </section>
                 ) : null,
               )}

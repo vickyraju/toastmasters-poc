@@ -38,7 +38,7 @@ const STATUS_STYLE = {
   removed: "bg-danger-bg text-danger",
 } as const;
 const selectClass =
-  "h-10 rounded-lg border border-border-input bg-card px-3 text-sm max-lg:h-11 max-lg:text-base";
+  "h-10 rounded-lg border border-border-input bg-card px-3 text-sm text-foreground max-lg:h-11 max-lg:text-base";
 
 /** S-11: search, status filter, Add member, and a row menu (Edit, Deactivate, Remove). */
 export function MembersPage() {

@@ -13,7 +13,10 @@ import { cn } from "@/lib/utils";
 import { LevelRing } from "./LevelRing";
 import { LogCompletionDialog } from "./LogCompletionDialog";
 
-const STATUS: Record<CompletionStatus, { label: string; className: string }> = {
+export const STATUS: Record<
+  CompletionStatus,
+  { label: string; className: string }
+> = {
   counted: { label: "Counted", className: "bg-success-bg text-success" },
   pending: { label: "Pending", className: "bg-warning-bg text-warning" },
   verified: { label: "Verified", className: "bg-success-bg text-success" },

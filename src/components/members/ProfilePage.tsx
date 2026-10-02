@@ -16,6 +16,8 @@ import { useCan, useCurrentUser } from "@/hooks/useSession";
 import { AppError } from "@/lib/services";
 import { formatMeetingTime } from "@/lib/time/ist";
 import { EditMemberDialog } from "./MemberDialogs";
+import { STATUS } from "@/components/progress/MyProgressPage";
+import { cn } from "@/lib/utils";
 
 /** S-12: profile card, roles history, progress summary. Self edits their own details; ExComm edits anyone's. */
 export function ProfilePage({ id }: { id: string }) {
@@ -132,8 +134,13 @@ export function ProfilePage({ id }: { id: string }) {
                             ? `Level ${c.level}`
                             : (c.projectName ?? "Project")}
                         </span>
-                        <span className="text-muted-foreground capitalize">
-                          {c.status}
+                        <span
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                            STATUS[c.status].className,
+                          )}
+                        >
+                          {STATUS[c.status].label}
                         </span>
                       </li>
                     ))}

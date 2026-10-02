@@ -109,6 +109,8 @@
   /* Root stays 16px so rem-based sizes match design.md; body text is 14px. */
   html {
     @apply font-sans;
+    /* the fixed form footer and bottom tab bar must not cover a focused field */
+    scroll-padding-bottom: 6rem;
   }
   body {
     @apply bg-background text-foreground text-sm leading-normal;

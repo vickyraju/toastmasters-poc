@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDirtyGuard } from "@/hooks/useDirtyGuard";
 import {
   Dialog,
   DialogContent,
@@ -51,7 +52,7 @@ export function AddMemberDialog({ onClose }: { onClose: () => void }) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<MemberAddForm, unknown, MemberAddValues>({
     resolver: zodResolver(memberAddInput),
     defaultValues: {
@@ -63,6 +64,7 @@ export function AddMemberDialog({ onClose }: { onClose: () => void }) {
       currentLevel: 1,
     },
   });
+  useDirtyGuard(isDirty);
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto">

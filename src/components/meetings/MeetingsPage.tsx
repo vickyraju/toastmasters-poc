@@ -27,7 +27,7 @@ const STATUS_LABEL: Record<MeetingStatus, string> = {
 };
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const selectClass =
-  "h-10 rounded-lg border border-border-input bg-card px-3 text-sm max-lg:h-11 max-lg:text-base";
+  "h-10 rounded-lg border border-border-input bg-card px-3 text-sm text-foreground max-lg:h-11 max-lg:text-base";
 
 /** S-03: Calendar or List, filtered by type and status. Drafts never reach Members (the service filters them). */
 export function MeetingsPage() {

@@ -28,6 +28,7 @@ import type { UploadFile } from "@/lib/services";
 import { formatIST, istToUtcIso } from "@/lib/time/ist";
 import { usePathname } from "next/navigation";
 import { AgendaUpload } from "./AgendaUpload";
+import { useDirtyGuard } from "@/hooks/useDirtyGuard";
 
 const field =
   "h-11 w-full rounded-lg border border-border-input bg-card px-3 text-base";
@@ -179,6 +180,7 @@ function Loaded({
     resolver: zodResolver(meetingFormInput),
     defaultValues: defaults,
   });
+  useDirtyGuard(isDirty || !!agenda);
   const roles = useFieldArray({ control, name: "roles" });
   const custom = useFieldArray({ control, name: "customRoles" });
   const typeId = useWatch({ control, name: "meetingTypeId" });

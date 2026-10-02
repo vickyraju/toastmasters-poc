@@ -97,7 +97,7 @@ function ExportCard({
       <div className="space-y-2">
         <Icon className="size-6 text-primary" aria-hidden="true" />
         <h2 className="text-xl font-semibold">{title}</h2>
-        <p className="text-sm text-muted-foreground">{text}</p>
+        <p className="min-h-10 text-sm text-muted-foreground">{text}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">

@@ -61,6 +61,12 @@ function SignedInShell({
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:shadow-[var(--elevation)]"
+      >
+        Skip to main content
+      </a>
       <DemoRibbon />
       <div className="flex flex-1">
         <Sidebar actor={actor} pathname={pathname} openTasks={openTasks} />
@@ -71,7 +77,11 @@ function SignedInShell({
 
             onSignOut={handleSignOut}
           />
-          <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 p-6 max-lg:p-4 max-lg:pb-24">
+          <main
+            id="main"
+            tabIndex={-1}
+            className="mx-auto w-full max-w-[var(--content-max)] flex-1 p-6 max-lg:p-4 max-lg:pb-24 focus:outline-none"
+          >
             {canOpen(actor, pathname) ? (
               children
             ) : (
