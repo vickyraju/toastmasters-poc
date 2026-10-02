@@ -10,6 +10,8 @@ import { QueryBlock } from "@/components/shared/QueryBlock";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { RoleBoard } from "@/components/roles/RoleBoard";
 import { useMeeting, useMeetingRoles } from "@/hooks/useMeeting";
+import { useMyBoardActions } from "@/hooks/useRoles";
+import { useCan, useCurrentUser } from "@/hooks/useSession";
 import { useNow } from "@/hooks/useHome";
 import { AppError, type MeetingDetail as Detail } from "@/lib/services";
 import type { MeetingStatus } from "@/lib/domain/types";
@@ -145,7 +147,7 @@ function Loaded({ meeting: m }: { meeting: Detail }) {
           <AgendaTab meeting={m} />
         </TabsContent>
         <TabsContent value="roles" className="pt-4">
-          <RolesTab meetingId={m.id} />
+          <RolesTab meeting={m} />
         </TabsContent>
         <TabsContent value="reports" className="pt-4">
           <ReportsTab meeting={m} />
@@ -207,17 +209,31 @@ export function LifecycleStepper({ status }: { status: MeetingStatus }) {
   );
 }
 
-function RolesTab({ meetingId }: { meetingId: string }) {
-  const roles = useMeetingRoles(meetingId);
+function RolesTab({ meeting: m }: { meeting: Detail }) {
+  const roles = useMeetingRoles(m.id);
+  const actions = useMyBoardActions(m.id);
+  const me = useCurrentUser().data;
+  const isOfficer = useCan("role.assign");
+  const highlight = useSearchParams().get("slot");
   return (
-    <QueryBlock
-      query={roles}
-      label="roles"
-      rows={6}
-      isEmpty={(d) => d.length === 0}
-      empty="No roles added yet"
-    >
-      {(d) => <RoleBoard roles={d} />}
+    <QueryBlock query={roles} label="roles" rows={6}>
+      {(d) =>
+        d.length === 0 && !isOfficer ? (
+          <p className="text-sm text-muted-foreground">No roles added yet</p>
+        ) : (
+          <RoleBoard
+            highlight={highlight}
+            ctx={{
+              meetingId: m.id,
+              status: m.status,
+              meId: me?.id ?? "",
+              isOfficer,
+              actions: actions.data,
+              roles: d,
+            }}
+          />
+        )
+      }
     </QueryBlock>
   );
 }

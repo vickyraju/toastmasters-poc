@@ -7,6 +7,7 @@ import { AccessDenied } from "@/components/shared/AccessDenied";
 import { useCurrentUser, useSignOut, toActor } from "@/hooks/useSession";
 import { useMyTasks, useNotificationToasts } from "@/hooks/useInbox";
 import { useMockTick } from "@/hooks/useDev";
+import { useLiveUpdates } from "@/hooks/useRoles";
 import { canOpen, titleFor } from "@/lib/permissions/routes";
 import type { CurrentUser } from "@/lib/services";
 import { BottomTabBar } from "./BottomTabBar";
@@ -51,6 +52,7 @@ function SignedInShell({
   const tasks = useMyTasks();
   useNotificationToasts();
   useMockTick();
+  useLiveUpdates();
 
   const actor = toActor(user);
   const openTasks = tasks.data?.length ?? 0;

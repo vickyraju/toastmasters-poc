@@ -232,10 +232,10 @@ describe("S-04 Meeting detail", () => {
       "4:00 PM",
       "4:05 PM",
       "4:08 PM",
-      "4:29 PM",
-      "4:44 PM",
-      "4:59 PM",
-      "5:09 PM",
+      "4:30 PM",
+      "4:45 PM",
+      "5:00 PM",
+      "5:10 PM",
     ]);
     expect(rows[0]).toHaveTextContent("Ananya Das");
   });
@@ -270,7 +270,7 @@ describe("S-04 Meeting detail", () => {
     ]);
     expect(within(main).getAllByText("Open")).toHaveLength(2);
     expect(
-      within(main).getByText(/Withdrawal requested: “Client call at 4 PM”/),
+      within(main).getByText(/asked to withdraw: “Client call at 4 PM”/),
     ).toBeInTheDocument();
     const support = screen
       .getByRole("heading", { name: "Support roles" })

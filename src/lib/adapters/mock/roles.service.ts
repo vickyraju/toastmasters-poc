@@ -1,5 +1,6 @@
 import { AppError } from "../../services/errors";
 import type {
+  MyBoardActions,
   OpenRoleItem,
   PendingWithdrawalItem,
   RoleSlotView,
@@ -210,6 +211,63 @@ const swapError = (code: string) =>
 
 export function rolesService({ store, call }: Ctx): RolesService {
   return {
+    myActions: (meetingId) =>
+      call((sid) => {
+        const d = store.getState();
+        const { actor, member } = me(d, sid);
+        const m = meetingOf(d, meetingId);
+        if (!can(actor, "meeting.view", { meetingStatus: m.status }))
+          throw new AppError("FORBIDDEN", "You do not have access to this.");
+        const out: MyBoardActions = { take: {}, withdraw: {} };
+        if (m.status !== "open" && m.status !== "finalized") return out;
+        const slots = d.meetingRoles.filter((s) => s.meetingId === meetingId);
+        for (const slot of slots.filter((s) => !s.memberId)) {
+          try {
+            checkTake(d, slot, member.id, false);
+            out.take[slot.id] = { ok: true, override: false };
+          } catch (e) {
+            if (!(e instanceof AppError)) throw e;
+            // Officers may override the level check only (R-03); everything else blocks them too.
+            const levelOnly =
+              e.code === "NOT_ELIGIBLE" && e.extra.reason === "LEVEL";
+            if (levelOnly && isOfficer(actor)) {
+              try {
+                checkTake(d, slot, member.id, true);
+                out.take[slot.id] = { ok: true, override: true };
+                continue;
+              } catch (e2) {
+                if (!(e2 instanceof AppError)) throw e2;
+                out.take[slot.id] = { ok: false, message: e2.message };
+                continue;
+              }
+            }
+            out.take[slot.id] = { ok: false, message: e.message };
+          }
+        }
+        const at = now();
+        for (const slot of slots.filter((s) => s.memberId === member.id)) {
+          const decision = withdrawalCutoff({
+            startsAt: new Date(m.startsAt),
+            now: at,
+            cutoffHours: m.withdrawalCutoffHours,
+            clubDefaultHours: d.settings.withdrawalCutoffHours,
+            hasPendingRequest: d.withdrawals.some(
+              (w) => w.meetingRoleId === slot.id && w.status === "pending",
+            ),
+            isExComm: isOfficer(actor),
+          });
+          out.withdraw[slot.id] =
+            decision.kind === "blocked"
+              ? "started"
+              : decision.kind === "duplicate"
+                ? "pending"
+                : decision.kind;
+        }
+        return out;
+      }),
+
+    subscribe: (listener) => store.subscribe(() => listener()),
+
     openForMe: () =>
       call((sid) => {
         const d = store.getState();

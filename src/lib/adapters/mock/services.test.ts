@@ -643,11 +643,11 @@ describe("M5 agenda outline", () => {
     ).toEqual([
       ["10:30", "Opening and TMOD intro", 5],
       ["10:35", "Word of the day", 3],
-      ["10:38", "Prepared speeches", 21],
-      ["10:59", "Table Topics", 15],
-      ["11:14", "Evaluations", 15],
-      ["11:29", "Reports", 10],
-      ["11:39", "Close", 5],
+      ["10:38", "Prepared speeches", 22],
+      ["11:00", "Table Topics", 15],
+      ["11:15", "Evaluations", 15],
+      ["11:30", "Reports", 10],
+      ["11:40", "Close", 5],
     ]);
     expect(rows[0].holders).toEqual(["Ananya Das"]);
     expect(rows[2].holders).toEqual([
@@ -665,5 +665,104 @@ describe("M5 agenda outline", () => {
     expect(await code(s.meetings.agendaOutline("mtg-2026-10-16"))).toBe(
       "FORBIDDEN",
     );
+  });
+});
+
+describe("M6 board actions", () => {
+  it("Lakshmi: Evaluator 2 is her own speech; Grammarian is open to her", async () => {
+    await as("IL1010");
+    const a = await s.roles.myActions(M2);
+    expect(a.take[slot("evaluator-2")]).toEqual({
+      ok: false,
+      message: "You cannot evaluate your own speech.",
+    });
+    expect(a.take[slot("grammarian")]).toEqual({ ok: true, override: false });
+  });
+  it("Mohammed (L2, Speaker 1): Evaluator 3 fails on level, Evaluator 2 on his main role; filled slots not listed", async () => {
+    await as("IL1009");
+    const a = await s.roles.myActions(M2);
+    expect(a.take[slot("evaluator-3")]).toEqual({
+      ok: false,
+      message: "You need to be at level 3 or higher to evaluate this speech.",
+    });
+    expect(a.take[slot("evaluator-2")]).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("Speaker 1"),
+    });
+    expect(a.take[slot("speaker-1")]).toBeUndefined();
+  });
+  it("Aditya (L1): Evaluator 2 needs level 2", async () => {
+    await as("IL1013");
+    const a = await s.roles.myActions(M2);
+    expect(a.take[slot("evaluator-2")]).toEqual({
+      ok: false,
+      message: "You need to be at level 2 or higher to evaluate this speech.",
+    });
+  });
+  it("officers see a level failure as an override", async () => {
+    await as("IL1007"); // Vikram L2, Timer (support), no main role
+    expect((await s.roles.myActions(M2)).take[slot("evaluator-3")]).toEqual({
+      ok: true,
+      override: true,
+    });
+  });
+  it("withdraw modes: inside 24 h is a request; Nisha's is already pending; 9 Oct is immediate; ExComm immediate", async () => {
+    await as("IL1011");
+    expect((await s.roles.myActions(M2)).withdraw).toEqual({
+      [slot("ge")]: "request",
+    });
+    await s.auth.signOut();
+    await as("IL1014");
+    expect((await s.roles.myActions(M2)).withdraw).toEqual({
+      [slot("evaluator-1")]: "pending",
+    });
+    await s.auth.signOut();
+    await as("IL1006");
+    expect((await s.roles.myActions("mtg-2026-10-09")).withdraw).toEqual({
+      "mtg-2026-10-09:tmod": "immediate",
+    });
+    await s.auth.signOut();
+    await as("IL1004");
+    expect((await s.roles.myActions(M2)).withdraw).toEqual({
+      [slot("ttm")]: "immediate",
+    });
+  });
+  it("closed meetings offer nothing", async () => {
+    await as("IL1013");
+    expect(await s.roles.myActions("mtg-2026-09-18")).toEqual({
+      take: {},
+      withdraw: {},
+    });
+  });
+  it("subscribe fires on changes", async () => {
+    await as("IL1010");
+    let n = 0;
+    const off = s.roles.subscribe(() => n++);
+    await s.roles.claim(slot("grammarian"));
+    off();
+    expect(n).toBeGreaterThan(0);
+  });
+  it("templates: role catalog and project timings", async () => {
+    await as("IL1009");
+    expect((await s.templates.roleTemplates()).map((r) => r.code)).toContain(
+      "hark_master",
+    );
+    expect(
+      (await s.templates.projects()).find((p) => p.id === "prj-l1"),
+    ).toMatchObject({ minSeconds: 240, maxSeconds: 360 });
+  });
+});
+
+describe("store churn", () => {
+  it("reading tasks, notifications and ticking with nothing due does not write the store", async () => {
+    await as("IL1002");
+    await s.tasks.listMine(); // first read may catch up
+    let writes = 0;
+    const off = store.subscribe(() => writes++);
+    await s.tasks.listMine();
+    await s.notifications.listMine();
+    await s.dev.tick();
+    off();
+    expect(writes).toBe(0);
   });
 });

@@ -151,3 +151,51 @@ describe("memberInput", () => {
     ).toBe(false);
   });
 });
+
+describe("speakerDetailsInput", () => {
+  it("trims, turns empty into null, and checks limits and links", async () => {
+    const { speakerDetailsInput } = await import("./schemas");
+    expect(
+      speakerDetailsInput.parse({
+        projectId: "",
+        level: "2",
+        title: "  Plan B ",
+        objectives: "",
+        evalFormUrl: "",
+      }),
+    ).toEqual({
+      projectId: null,
+      level: 2,
+      title: "Plan B",
+      objectives: null,
+      evalFormUrl: null,
+    });
+    expect(
+      speakerDetailsInput.safeParse({
+        projectId: "p",
+        level: 2,
+        title: "x".repeat(121),
+        objectives: "",
+        evalFormUrl: "",
+      }).success,
+    ).toBe(false);
+    expect(
+      speakerDetailsInput.safeParse({
+        projectId: "p",
+        level: 2,
+        title: "",
+        objectives: "",
+        evalFormUrl: "javascript:alert(1)",
+      }).success,
+    ).toBe(false);
+    expect(
+      speakerDetailsInput.safeParse({
+        projectId: "p",
+        level: 6,
+        title: "",
+        objectives: "",
+        evalFormUrl: "",
+      }).success,
+    ).toBe(false);
+  });
+});

@@ -40,11 +40,18 @@ export function createPersistedMockStore(startMs = mockStartMs()): MockStore {
   return store;
 }
 
-/** Atomic update (R-09): fn runs on a copy inside one synchronous step; nothing is written if it throws. */
+/**
+ * Atomic update (R-09): fn runs on a copy inside one synchronous step; nothing is written if it throws.
+ * An update that changed nothing is not written, so reads that run the time-based jobs do not wake
+ * every store subscriber (which would refetch, run the jobs again, and loop).
+ */
 export function mutate<T>(store: MockStore, fn: (draft: MockData) => T): T {
-  const draft = structuredClone(store.getState());
+  const before = store.getState();
+  const draft = structuredClone(before);
   const out = fn(draft);
-  store.setState(draft, true);
+  // ponytail: whole-store JSON compare is fine at demo size; track dirty slices if the seed grows a lot.
+  if (JSON.stringify(draft) !== JSON.stringify(before))
+    store.setState(draft, true);
   return out;
 }
 

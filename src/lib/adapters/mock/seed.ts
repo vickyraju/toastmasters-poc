@@ -628,7 +628,7 @@ export function createSeed(nowMs: number): MockData {
       [
         ["Opening and TMOD intro", 5, "tmod"],
         ["Word of the day", 3, null],
-        ["Prepared speeches", 21, "speaker"],
+        ["Prepared speeches", 22, "speaker"],
         ["Table Topics", 15, "table_topics_master"],
         ["Evaluations", 15, "evaluator"],
         ["Reports", 10, null],

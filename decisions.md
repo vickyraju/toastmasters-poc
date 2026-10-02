@@ -63,7 +63,7 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 
 ## M5 (2026-10-01)
 
-- **Agenda outline times are derived from durations** (the schema stores durations only), so 2 Oct reads 4:00, 4:05, 4:08, 4:29, 4:44, 4:59, 5:09. mock-data.md 4.2 lists 4:30, 4:45, 5:00, 5:10, which needs 22 minutes for Prepared speeches, not 21. Cost if wrong: change one seed duration, or add a start time to `meeting_type_agenda_items`.
+- **Agenda outline times are derived from durations**; Prepared speeches is seeded at **22 min** (accepted 2026-10-02) so the times match mock-data.md 4.2 (4:30, 4:45, 5:00, 5:10). Original note: (the schema stores durations only), so 2 Oct reads 4:00, 4:05, 4:08, 4:29, 4:44, 4:59, 5:09. mock-data.md 4.2 lists 4:30, 4:45, 5:00, 5:10, which needs 22 minutes for Prepared speeches, not 21. Cost if wrong: change one seed duration, or add a start time to `meeting_type_agenda_items`.
 - **New service method `meetings.agendaOutline(id)`**: the meeting type's agenda items timed from the meeting start, with the holders of each linked role. Types other than Regular have no seeded outline and show "This meeting type has no agenda outline."
 - **Placeholder agenda** `public/mock/agenda-sample.pdf` is generated (one page, the outline text) per R-14. PDFs are embedded with an iframe, images shown inline, DOCX offered as a download.
 - **Calendar weeks start on Monday**; the docs do not say. Below md the calendar becomes a list of that month's meetings (99-phone-variants). The calendar opens on the mock clock's month.
@@ -71,3 +71,12 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 - **S-04 header action bar (Edit, status changes, Cancel), the TMOD theme editor, agenda upload and all role actions are not on the page yet**; they belong to M6 to M8. Reports tab shows "Reports open after the meeting ends." before the end and the placeholder after it (M8).
 - **Meeting links render only if http(s)** (`safeHttpUrl`), so a stored `javascript:` link can never become clickable.
 - **Speaker details show Project and Level on separate rows.** "Set project timings" appears when a speaker has no min/max (R-04).
+
+## M6 (2026-10-02)
+
+- **Doc conflict, walkthrough step 4:** mock-data.md section 9 says Mohammed (Speaker 1 on 2 Oct) takes Evaluator 2 successfully. Evaluator is a main role, and R-02 (flow.md J-04, schema.md's unique index) blocks a second main role, so in this build he is refused with "You already have a main role in this meeting (Speaker 1)". flow.md and schema.md outrank mock-data.md. To make step 4 pass, either make Evaluator a support role or have step 4 use a member with no main role. **Needs your call.**
+- **Eligibility is checked before the main-role rule**, so a member failing both sees the level message (matches walkthrough step 4's "blocked (level)").
+- **New `roles.myActions(meetingId)`** returns, for the signed-in member, whether each open slot can be taken (or would be an officer override) and how each of their own slots would withdraw now (immediate, request, pending, started). The UI uses it so buttons and messages match the service rules exactly.
+- **Live board:** `roles.subscribe()` fires on any store change; in mock mode that includes other tabs (the persisted store rehydrates on the `storage` event). The board refetches on it.
+- **Minimal `templates` service** (`roleTemplates()`, `projects()`) for the Add role and speech-details forms; S-06 editing extends it in M7.
+- **Store writes that change nothing are skipped** (`mutate` compares before and after). Without this, reading tasks ran the time-based jobs, which wrote the store, which woke the live-update listener, which refetched tasks: an endless loop that kept the board from refreshing after a click. Found in the browser; covered by a "store churn" test.

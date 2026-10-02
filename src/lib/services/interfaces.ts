@@ -4,6 +4,8 @@ import type { LifecycleWarning } from "../domain/rules/lifecycle";
 import type { VoteView } from "../domain/rules/ballot";
 import type {
   AuditAction,
+  PathwaysProject,
+  RoleTemplate,
   AuditEntry,
   Completion,
   FileRecord,
@@ -149,8 +151,23 @@ export interface PendingWithdrawalItem {
   startsAt: string;
 }
 
+export type TakeCheck =
+  { ok: true; override: boolean } | { ok: false; message: string };
+export type WithdrawMode = "immediate" | "request" | "pending" | "started";
+
+/** What the signed-in member may do on a meeting's board (S-04 Roles), computed with the same rules as the actions. */
+export interface MyBoardActions {
+  /** Open slots only: can I take it, and would it be an officer override? */
+  take: Record<string, TakeCheck>;
+  /** My own slots: how a withdrawal would go right now (R-05). */
+  withdraw: Record<string, WithdrawMode>;
+}
+
 export interface RolesService {
   listForMeeting(meetingId: string): Promise<RoleSlotView[]>;
+  myActions(meetingId: string): Promise<MyBoardActions>;
+  /** Fires after any data change, including other tabs (architecture.md section 6). Returns unsubscribe. */
+  subscribe(listener: () => void): () => void;
   /** Open slots in upcoming Open or Finalized meetings the signed-in member could take now (R-02, R-03). Home card. */
   openForMe(): Promise<OpenRoleItem[]>;
   /** ExComm: every pending late-withdrawal request (Home "Pending approvals"). */
@@ -276,6 +293,12 @@ export interface DevService {
   status(): Promise<{ now: string; simulateError: boolean }>;
 }
 
+/** Catalogs used by forms. S-06 editing comes in M7. */
+export interface TemplatesService {
+  roleTemplates(): Promise<RoleTemplate[]>;
+  projects(): Promise<PathwaysProject[]>;
+}
+
 export interface PositionsSummary {
   items: {
     code: Position;
@@ -300,6 +323,7 @@ export interface Services {
   votes: VotesService;
   members: MembersService;
   positions: PositionsService;
+  templates: TemplatesService;
   audit: AuditService;
   dev: DevService;
 }

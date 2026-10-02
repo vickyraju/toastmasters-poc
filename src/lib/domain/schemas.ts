@@ -97,3 +97,28 @@ export const startVoteInput = (now: Date) =>
       )
       .optional(),
   });
+
+// Speech details (schema.md 3.9). Empty strings mean "not set".
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => v || null);
+
+export const speakerDetailsInput = z.object({
+  projectId: z.string().transform((v) => v || null),
+  level: z.coerce.number().int().min(1).max(5),
+  title: optionalText(120),
+  objectives: optionalText(1000),
+  evalFormUrl: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === "" || /^https?:\/\//i.test(v),
+      "Use a link that starts with https://",
+    )
+    .transform((v) => v || null),
+});
+export type SpeakerDetailsForm = z.input<typeof speakerDetailsInput>;
+export type SpeakerDetailsValues = z.output<typeof speakerDetailsInput>;

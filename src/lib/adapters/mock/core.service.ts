@@ -5,6 +5,7 @@ import type {
   DevService,
   MembersService,
   PositionsService,
+  TemplatesService,
   NotificationsService,
   TasksService,
   CurrentUser,
@@ -276,6 +277,23 @@ export function positionsService({ store, call }: Ctx): PositionsService {
           nextPresidentId: d.settings.nextPresidentId,
           nextPresidentName: nameOf(d.settings.nextPresidentId),
         };
+      }),
+  };
+}
+
+export function templatesService({ store, call }: Ctx): TemplatesService {
+  return {
+    roleTemplates: () =>
+      call((sid) => {
+        const d = store.getState();
+        me(d, sid);
+        return d.roleTemplates;
+      }),
+    projects: () =>
+      call((sid) => {
+        const d = store.getState();
+        me(d, sid);
+        return d.projects;
       }),
   };
 }

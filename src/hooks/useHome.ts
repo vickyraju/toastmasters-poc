@@ -1,7 +1,7 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { useAction } from "./useAction";
 import { getServices } from "@/lib/services";
 import { now } from "@/lib/time/clock";
 import type { MeetingStatus } from "@/lib/domain/types";
@@ -69,22 +69,6 @@ export function usePositions(enabled: boolean) {
     queryKey: qk.positions,
     queryFn: () => getServices().positions.list(),
     enabled,
-  });
-}
-
-/** A write that can change any card: refetch everything after it, show errors as toasts (design.md section 5). */
-function useAction<A>(
-  fn: (args: A) => Promise<unknown>,
-  success?: (args: A) => string,
-) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: fn,
-    onSuccess: (_r, args) => {
-      if (success) toast.success(success(args));
-    },
-    onError: (e) => toast.error(e.message),
-    onSettled: () => qc.invalidateQueries(),
   });
 }
 
