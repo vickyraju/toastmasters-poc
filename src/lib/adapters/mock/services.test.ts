@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockServices, createMockStore, type MockStore } from "./index";
 import type { Services } from "../../services/interfaces";
 import { AppError } from "../../services/errors";
@@ -1667,5 +1667,109 @@ describe("M10 positions (R-12)", () => {
     await s.positions.setNextPresident("mem-1010");
     await s.positions.setNextPresident(null);
     expect((await s.positions.list()).nextPresidentId).toBeNull();
+  });
+});
+
+describe("M11 voting hardening (R-13, J-12)", () => {
+  it("every cast is audited without the choice; the audit row never mentions the option", async () => {
+    await as("IL1004");
+    await s.votes.cast("vote-001", "vote-001:no");
+    const row = store.getState().audit.at(-1)!;
+    expect(row).toMatchObject({
+      actorId: "mem-1004",
+      action: "vote.cast",
+      entityType: "vote",
+      entityId: "vote-001",
+      before: null,
+      after: null,
+    });
+    expect(JSON.stringify(row)).not.toMatch(/vote-001:no|"no"/);
+  });
+  it("ballots are stored in shuffled positions, so their order cannot be matched to who voted when", async () => {
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0); // always insert at the front
+    await as("IL1004");
+    await s.votes.cast("vote-001", "vote-001:no");
+    await s.auth.signOut();
+    await as("IL1005");
+    await s.votes.cast("vote-001", "vote-001:yes");
+    spy.mockRestore();
+    const d = store.getState();
+    expect(
+      d.voteParticipation
+        .filter((p) => p.voteId === "vote-001")
+        .map((p) => p.memberId)
+        .slice(-2),
+    ).toEqual(["mem-1004", "mem-1005"]);
+    const ballots = d.voteBallots
+      .filter((b) => b.voteId === "vote-001")
+      .map((b) => b.optionId);
+    expect(ballots.slice(0, 2)).toEqual(["vote-001:yes", "vote-001:no"]); // reversed relative to cast order
+    for (const b of d.voteBallots)
+      expect(Object.keys(b).sort()).toEqual(["id", "optionId", "voteId"]);
+  });
+  it("results go to eligible voters only: an officer appointed after the vote started sees turnout, never the result", async () => {
+    await as("IL1001");
+    await s.votes.close("vote-001");
+    await s.positions.assign("treasurer", null);
+    await s.positions.assign("treasurer", "mem-1009"); // Mohammed becomes ExComm after the vote started
+    await s.auth.signOut();
+    await as("IL1009");
+    const v = await s.votes.get("vote-001");
+    expect(v).toMatchObject({ status: "closed", isEligible: false });
+    expect(v.view.status).toBe("open"); // the turnout-only view
+    expect(JSON.stringify(v.view)).not.toMatch(/count|percent/);
+    expect(await code(s.votes.cast("vote-001", "vote-001:yes"))).toBe("CLOSED");
+    await s.auth.signOut();
+    await as("IL1002"); // an eligible voter does see it
+    expect((await s.votes.get("vote-001")).view.status).toBe("closed");
+  });
+  it("a deadline that has passed closes the vote on the next read, and eligible voters are told (N-13)", async () => {
+    await as("IL1002");
+    clock = Date.parse("2026-10-04T18:00:01+05:30");
+    const v = await s.votes.get("vote-001");
+    expect(v.status).toBe("closed");
+    expect(
+      store.getState().notifications.filter((n) => n.code === "N-13"),
+    ).toHaveLength(7);
+  });
+  it("start vote: President only; 2 to 6 options; creates eligible voters, T-05 and N-12 for each", async () => {
+    await as("IL1002");
+    expect(
+      await code(
+        s.votes.start({
+          title: "Pizza?",
+          description: "",
+          options: ["Yes", "No"],
+        }),
+      ),
+    ).toBe("FORBIDDEN");
+    await s.auth.signOut();
+    await as("IL1001");
+    await expect(
+      s.votes.start({ title: "Pizza?", description: "", options: ["Yes"] }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    const before = store
+      .getState()
+      .tasks.filter((t) => t.code === "T-05").length;
+    const v = await s.votes.start({
+      title: "Pizza?",
+      description: "Friday lunch",
+      options: ["Yes", "No", "Abstain"],
+      deadlineAt: "2026-10-03T12:00:00.000Z",
+    });
+    expect(
+      store.getState().voteEligible.filter((e) => e.voteId === v.id),
+    ).toHaveLength(7);
+    expect(
+      store.getState().tasks.filter((t) => t.code === "T-05").length - before,
+    ).toBe(7);
+    expect(
+      store
+        .getState()
+        .notifications.filter(
+          (n) => n.code === "N-12" && /Pizza/.test(n.title),
+        ),
+    ).toHaveLength(7);
+    expect((await s.votes.get(v.id)).turnout).toEqual({ cast: 0, eligible: 7 });
   });
 });

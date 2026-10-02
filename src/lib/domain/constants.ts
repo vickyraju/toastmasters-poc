@@ -93,6 +93,8 @@ export const AUDIT_ACTIONS = [
   "level.verify",
   "level.reject",
   "vote.start",
+  // flow.md J-12 step 7: every cast is recorded, never with the choice
+  "vote.cast",
   "vote.close",
   "template.change",
   "settings.change",

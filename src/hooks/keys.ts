@@ -24,5 +24,6 @@ export const qk = {
   verifyQueue: ["verify-queue"] as const,
   myCompletions: ["my-completions"] as const,
   votes: ["votes"] as const,
+  vote: (id: string) => ["vote", id] as const,
   positions: ["positions"] as const,
 };

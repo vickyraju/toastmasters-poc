@@ -11,7 +11,7 @@ import * as ev from "../../domain/events";
 import { newId } from "../../domain/ids";
 import { now } from "../../time/clock";
 import type { Vote } from "../../domain/types";
-import { assertCan, me, mutate, type Ctx } from "./runtime";
+import { assertCan, me, mutate, runTick, type Ctx } from "./runtime";
 import { log, touch } from "./helpers";
 import { closeVote } from "./tick";
 import type { MockData } from "./state";
@@ -36,6 +36,7 @@ export function votesService({ store, call }: Ctx): VotesService {
   return {
     list: () =>
       call((sid) => {
+        runTick(store);
         const d = store.getState();
         const { actor, member } = me(d, sid);
         assertCan(actor, "vote.view_turnout");
@@ -44,6 +45,7 @@ export function votesService({ store, call }: Ctx): VotesService {
 
     get: (id) =>
       call((sid): VoteDetail => {
+        runTick(store); // a deadline that has passed closes the vote now
         const d = store.getState();
         const { actor, member } = me(d, sid);
         assertCan(actor, "vote.view_turnout");
@@ -54,9 +56,11 @@ export function votesService({ store, call }: Ctx): VotesService {
           .sort((a, b) => a.sortOrder - b.sortOrder);
         const t = turnout(d, id);
         // Counts are only ever handed to voteView after close and only if can() allows (R-13).
-        const showResults = can(actor, "vote.view_result", {
-          voteStatus: v.status,
-        });
+        const eligible = d.voteEligible.some(
+          (e) => e.voteId === id && e.memberId === member.id,
+        );
+        const showResults =
+          eligible && can(actor, "vote.view_result", { voteStatus: v.status });
         const view = voteView({
           status: showResults ? v.status : "open",
           options,
@@ -164,10 +168,18 @@ export function votesService({ store, call }: Ctx): VotesService {
             memberId: member.id,
             castAt: at.toISOString(),
           });
-          d.voteBallots.push({
-            id: newId("bal"),
-            ...makeBallot({ voteId, optionId }),
-          });
+          // A random position, so the ballot order cannot be lined up with the participation order
+          // (who voted when) to work out who chose what. A real database would add no ordering either.
+          d.voteBallots.splice(
+            Math.floor(Math.random() * (d.voteBallots.length + 1)),
+            0,
+            {
+              id: newId("bal"),
+              ...makeBallot({ voteId, optionId }),
+            },
+          );
+          // flow.md J-12 step 7: the cast is recorded, never with the option.
+          log(d, at, member.id, "vote.cast", "vote", voteId, null, null);
           ev.closeTasks(
             d,
             at,

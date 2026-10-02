@@ -316,3 +316,44 @@ export type MemberAddForm = z.input<typeof memberAddInput>;
 export type MemberAddValues = z.output<typeof memberAddInput>;
 export type MemberEditForm = z.input<typeof memberEditInput>;
 export type MemberEditValues = z.output<typeof memberEditInput>;
+
+// S-14 start-vote form. The deadline is an optional IST date and time; the page turns it into a UTC instant.
+export const DEFAULT_VOTE_OPTIONS = ["Yes", "No", "Abstain"];
+export const voteFormInput = z
+  .object({
+    title: trimmed(120).min(3, "Use at least 3 characters"),
+    description: trimmed(1000),
+    options: z
+      .array(z.object({ label: trimmed(80).min(1, "Name this option") }))
+      .min(2, "Add at least 2 options")
+      .max(6, "At most 6 options"),
+    deadlineDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, "Choose a date"),
+    deadlineTime: z
+      .string()
+      .regex(/^(([01]\d|2[0-3]):[0-5]\d)?$/, "Choose a time"),
+  })
+  .superRefine((v, ctx) => {
+    if (v.deadlineDate && !v.deadlineTime)
+      ctx.addIssue({
+        code: "custom",
+        path: ["deadlineTime"],
+        message: "Choose a time for the deadline",
+      });
+    if (!v.deadlineDate && v.deadlineTime)
+      ctx.addIssue({
+        code: "custom",
+        path: ["deadlineDate"],
+        message: "Choose a date for the deadline",
+      });
+    const labels = v.options.map((o) => o.label.toLowerCase());
+    labels.forEach((l, i) => {
+      if (l && labels.indexOf(l) !== i)
+        ctx.addIssue({
+          code: "custom",
+          path: ["options", i, "label"],
+          message: "Each option must be different",
+        });
+    });
+  });
+export type VoteForm = z.input<typeof voteFormInput>;
+export type VoteFormValues = z.output<typeof voteFormInput>;

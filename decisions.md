@@ -129,3 +129,14 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 - **`members.list` now returns removed members too** (S-11 has a Removed filter); the assign dialogs already filter to active. The default status filter on S-11 is Active.
 - **CSV import** (flow.md J-10 step 1) is not in the M10 plan or in design.md's S-11, so it is **not built**. **Needs your call** if you want it.
 - **No idle timeout and no "View history" on removed rows**: removed members have no menu; their name is a link to their profile, which still shows their history.
+
+## M11 (2026-10-02)
+
+- **Every cast is audited, without the choice** (flow.md J-12 step 7). schema.md section 7 lists only vote start and close, so I added `vote.cast` to the audit actions. The row names the voter and the vote; `before` and `after` are empty. Participation already says who voted and when, never what.
+- **Ballots are inserted at a random position**, so the ballot order cannot be matched to the participation order to work out who chose what. R-13 only requires that ballots hold no member id (they hold `id`, `voteId`, `optionId`). Cost if wrong: one line.
+- **Results go to eligible voters only** (R-13, J-12 step 6). The service previously checked only "officer"; an officer appointed after the vote started sees turnout and "Results are visible to the eligible voters", never counts. They also cannot cast ("You were not an eligible voter when this vote started").
+- **Deadlines close votes on the next read** (list or detail) as well as on the 60-second tick, and send N-13 to every eligible voter. A cast after the deadline returns `CLOSED`.
+- **S-15 states:** can vote (radio cards plus Cast vote, disabled until you choose); already voted (a note replaces the form: "You voted. Results are hidden until the vote closes."); not eligible (note); closed (result bars with counts and percentages, plus turnout; a tie is shown as a tie, no decision made). Cast confirms with "Votes are final and secret. You are voting “X”." Close vote (President, open votes only) confirms with "Results become visible to eligible voters immediately."
+- **The start-vote form** has a title (3 to 120), description (up to 1000), 2 to 6 distinct options defaulting to Yes, No and Abstain, and an optional deadline as an IST date and time together. A past deadline is refused by the service and shown under the deadline fields.
+- **S-14 sorts open votes first (soonest deadline), then closed (newest first)**, and flags "Your vote is needed" for eligible voters who have not voted. The list shows turnout as a count only.
+- **Percentages are rounded to whole numbers** (4 of 7 = 57%), so they can add up to 99 or 101 (R-13 gives no rule).

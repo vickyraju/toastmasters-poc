@@ -313,3 +313,43 @@ describe("parsing twice gives the same result (form, then service)", () => {
     ).toBe(false);
   });
 });
+
+describe("voteFormInput", () => {
+  const ok = {
+    title: "Approve budget",
+    description: "",
+    options: [{ label: "Yes" }, { label: "No" }],
+    deadlineDate: "",
+    deadlineTime: "",
+  };
+  it("needs 2 to 6 distinct options, a 3+ character title, and a deadline date and time together", async () => {
+    const { voteFormInput } = await import("./schemas");
+    expect(voteFormInput.safeParse(ok).success).toBe(true);
+    expect(voteFormInput.safeParse({ ...ok, title: "ab" }).success).toBe(false);
+    expect(
+      voteFormInput.safeParse({ ...ok, options: [{ label: "Yes" }] }).success,
+    ).toBe(false);
+    expect(
+      voteFormInput.safeParse({
+        ...ok,
+        options: Array.from({ length: 7 }, (_, i) => ({ label: `o${i}` })),
+      }).success,
+    ).toBe(false);
+    expect(
+      voteFormInput.safeParse({
+        ...ok,
+        options: [{ label: "Yes" }, { label: " yes " }],
+      }).success,
+    ).toBe(false);
+    expect(
+      voteFormInput.safeParse({ ...ok, deadlineDate: "2026-10-05" }).success,
+    ).toBe(false);
+    expect(
+      voteFormInput.safeParse({
+        ...ok,
+        deadlineDate: "2026-10-05",
+        deadlineTime: "18:00",
+      }).success,
+    ).toBe(true);
+  });
+});
