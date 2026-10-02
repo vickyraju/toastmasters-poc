@@ -1,5 +1,6 @@
 import { AppError } from "../../services/errors";
 import type {
+  ImportResult,
   MemberProfile,
   MemberRoleLine,
   MemberRow,
@@ -8,6 +9,7 @@ import type {
   RemovalImpact,
 } from "../../services/interfaces";
 import { memberAddInput, memberEditInput } from "../../domain/schemas";
+import { MAX_IMPORT_ROWS } from "../../domain/memberImport";
 import { can } from "../../permissions/can";
 import * as ev from "../../domain/events";
 import { newId } from "../../domain/ids";
@@ -226,6 +228,92 @@ export function membersService({ store, call }: Ctx): MembersService {
           ).length,
         };
       }),
+
+    importCsv: (rows, commit) =>
+      call((sid) =>
+        mutate(store, (d): ImportResult => {
+          const { actor } = me(d, sid);
+          assertCan(actor, "member.add");
+          if (rows.length === 0)
+            throw new AppError("VALIDATION", "The file has no members.");
+          if (rows.length > MAX_IMPORT_ROWS)
+            throw new AppError(
+              "VALIDATION",
+              `Import up to ${MAX_IMPORT_ROWS} members at a time.`,
+            );
+          const at = now();
+          const seenIds = new Set<string>();
+          const seenEmails = new Set<string>();
+          const out: ImportResult = {
+            rows: [],
+            valid: 0,
+            invalid: 0,
+            added: 0,
+          };
+          for (const r of rows) {
+            const errors: string[] = [];
+            const parsed = memberAddInput.safeParse({
+              employeeId: r.employeeId,
+              name: r.name,
+              email: r.email,
+              toastmastersId: r.toastmastersId,
+              pathway: r.pathway,
+              currentLevel: r.level === "" ? undefined : r.level,
+            });
+            if (!parsed.success) {
+              for (const i of parsed.error.issues)
+                errors.push(
+                  i.path[0] === "currentLevel"
+                    ? "The level must be a whole number from 1 to 5."
+                    : i.message,
+                );
+            } else {
+              const v = parsed.data;
+              if (seenIds.has(v.employeeId))
+                errors.push("This employee ID appears earlier in the file.");
+              else if (d.members.some((m) => m.employeeId === v.employeeId))
+                errors.push("A member with this employee ID already exists.");
+              if (seenEmails.has(v.email))
+                errors.push("This email appears earlier in the file.");
+              else if (d.members.some((m) => m.email === v.email))
+                errors.push("A member with this email already exists.");
+              seenIds.add(v.employeeId);
+              seenEmails.add(v.email);
+              if (errors.length === 0 && commit) {
+                const m: Member = {
+                  id: newId("mem"),
+                  employeeId: v.employeeId,
+                  name: v.name,
+                  email: v.email,
+                  toastmastersId: v.toastmastersId,
+                  pathway: v.pathway,
+                  currentLevel: v.currentLevel,
+                  accountType: "member",
+                  status: "active",
+                  joinedAt: null,
+                  lastActiveAt: null,
+                };
+                d.members.push(m);
+                log(d, at, actor.id, "member.add", "member", m.id, null, {
+                  employeeId: m.employeeId,
+                  name: m.name,
+                  source: "csv import",
+                });
+                out.added++;
+              }
+            }
+            out.rows.push({
+              line: r.line,
+              name: r.name,
+              employeeId: r.employeeId,
+              errors,
+            });
+            if (errors.length) out.invalid++;
+            else out.valid++;
+          }
+          return out;
+        }),
+      ),
 
     add: (raw) =>
       call((sid) =>

@@ -357,3 +357,42 @@ export const voteFormInput = z
   });
 export type VoteForm = z.input<typeof voteFormInput>;
 export type VoteFormValues = z.output<typeof voteFormInput>;
+
+// Club settings (schema.md 3.14, S-18). Ranges are mine; the docs give defaults only.
+export const clubSettingsInput = z.object({
+  clubName: trimmed(120).min(1, "Enter the club name"),
+  withdrawalCutoffHours: z.coerce
+    .number()
+    .int("Use a whole number")
+    .min(0, "At least 0 hours")
+    .max(168, "At most 168 hours (a week)"),
+  proofRequired: z.boolean(),
+  consecutiveRepeatLimit: z
+    .union([
+      z.literal(""),
+      z.null(),
+      z.coerce
+        .number()
+        .int("Use a whole number")
+        .min(1, "At least 1, or leave empty to turn it off")
+        .max(10, "At most 10"),
+    ])
+    .transform((v) => (v === "" || v === null ? null : v)),
+  timerGraceSeconds: z.coerce
+    .number()
+    .int("Use a whole number")
+    .min(0, "At least 0 seconds")
+    .max(120, "At most 120 seconds"),
+  inactiveAfterDays: z.coerce
+    .number()
+    .int("Use a whole number")
+    .min(7, "At least 7 days")
+    .max(365, "At most 365 days"),
+  generateWeeksAhead: z.coerce
+    .number()
+    .int("Use a whole number")
+    .min(1, "At least 1 week")
+    .max(12, "At most 12 weeks"),
+});
+export type ClubSettingsForm = z.input<typeof clubSettingsInput>;
+export type ClubSettingsValues = z.output<typeof clubSettingsInput>;

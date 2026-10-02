@@ -12,6 +12,7 @@ import { QueryBlock } from "@/components/shared/QueryBlock";
 import { useNotifPrefs, useSavePrefs } from "@/hooks/useAdmin";
 import { useUpdateMember } from "@/hooks/useMembers";
 import { useCan, useCurrentUser } from "@/hooks/useSession";
+import { ClubSettingsCard } from "./ClubSettingsCard";
 import { memberEditInput } from "@/lib/domain/schemas";
 import type { NotifCode } from "@/lib/domain/types";
 import type { CurrentUser, NotifPrefRow } from "@/lib/services";
@@ -42,6 +43,7 @@ export function SettingsPage() {
 
 function Form({ user, rows }: { user: CurrentUser; rows: NotifPrefRow[] }) {
   const officer = useCan("member.update");
+  const president = useCan("settings.club.edit");
   const update = useUpdateMember();
   const save = useSavePrefs();
   const [name, setName] = useState(user.name);
@@ -102,116 +104,129 @@ function Form({ user, rows }: { user: CurrentUser; rows: NotifPrefRow[] }) {
     ) : null;
 
   return (
-    <form onSubmit={onSave} noValidate className="space-y-6 pb-28">
-      <section className="space-y-4 rounded-lg border border-border bg-card p-5 max-sm:p-4">
-        <h2 className="text-xl font-semibold">Profile</h2>
-        <div className="space-y-1.5">
-          <Label htmlFor="st-name">Name (required)</Label>
-          <Input
-            id="st-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-11 text-base"
-            aria-invalid={errors.name ? true : undefined}
-          />
-          {err("name")}
+    <>
+      {president ? (
+        <div className="mb-6">
+          <ClubSettingsCard />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="st-email">Email (required)</Label>
-          <Input
-            id="st-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="h-11 text-base"
-            aria-invalid={errors.email ? true : undefined}
-          />
-          {err("email")}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="st-path">Pathway</Label>
-          <Input
-            id="st-path"
-            value={pathway}
-            onChange={(e) => setPathway(e.target.value)}
-            className="h-11 text-base"
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+      ) : null}
+      <form onSubmit={onSave} noValidate className="space-y-6 pb-28">
+        <section className="space-y-4 rounded-lg border border-border bg-card p-5 max-sm:p-4">
+          <h2 className="text-xl font-semibold">Profile</h2>
           <div className="space-y-1.5">
-            <Label htmlFor="st-emp">Employee ID</Label>
+            <Label htmlFor="st-name">Name (required)</Label>
             <Input
-              id="st-emp"
-              value={user.employeeId}
-              readOnly
-              aria-readonly
-              className="h-11 bg-background text-base text-muted-foreground"
+              id="st-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-11 text-base"
+              aria-invalid={errors.name ? true : undefined}
             />
+            {err("name")}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="st-tm">Toastmasters ID</Label>
+            <Label htmlFor="st-email">Email (required)</Label>
             <Input
-              id="st-tm"
-              value={tmId}
-              readOnly={!officer}
-              aria-readonly={!officer}
-              onChange={(e) => setTmId(e.target.value)}
-              className="h-11 text-base read-only:bg-background read-only:text-muted-foreground"
+              id="st-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 text-base"
+              aria-invalid={errors.email ? true : undefined}
             />
-            {!officer ? (
-              <p className="text-xs text-muted-foreground">
-                Only ExComm can change this.
-              </p>
-            ) : null}
+            {err("email")}
           </div>
-        </div>
-      </section>
+          <div className="space-y-1.5">
+            <Label htmlFor="st-path">Pathway</Label>
+            <Input
+              id="st-path"
+              value={pathway}
+              onChange={(e) => setPathway(e.target.value)}
+              className="h-11 text-base"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="st-emp">Employee ID</Label>
+              <Input
+                id="st-emp"
+                value={user.employeeId}
+                readOnly
+                aria-readonly
+                className="h-11 bg-background text-base text-muted-foreground"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="st-tm">Toastmasters ID</Label>
+              <Input
+                id="st-tm"
+                value={tmId}
+                readOnly={!officer}
+                aria-readonly={!officer}
+                onChange={(e) => setTmId(e.target.value)}
+                className="h-11 text-base read-only:bg-background read-only:text-muted-foreground"
+              />
+              {!officer ? (
+                <p className="text-xs text-muted-foreground">
+                  Only ExComm can change this.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </section>
 
-      <section
-        aria-labelledby="notif-h"
-        className="space-y-1 rounded-lg border border-border bg-card p-5 max-sm:p-4"
-      >
-        <h2 id="notif-h" className="text-xl font-semibold">
-          Notifications
-        </h2>
-        <ul className="divide-y divide-border">
-          {rows.map((r) => (
-            <li key={r.code} className="flex min-h-12 items-center gap-3 py-2">
-              <Label htmlFor={`pref-${r.code}`} className="flex-1 font-normal">
-                {r.label}
-              </Label>
-              {r.locked ? (
-                <span
-                  id={`pref-${r.code}`}
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground"
+        <section
+          aria-labelledby="notif-h"
+          className="space-y-1 rounded-lg border border-border bg-card p-5 max-sm:p-4"
+        >
+          <h2 id="notif-h" className="text-xl font-semibold">
+            Notifications
+          </h2>
+          <ul className="divide-y divide-border">
+            {rows.map((r) => (
+              <li
+                key={r.code}
+                className="flex min-h-12 items-center gap-3 py-2"
+              >
+                <Label
+                  htmlFor={`pref-${r.code}`}
+                  className="flex-1 font-normal"
                 >
-                  <Lock className="size-4" aria-hidden="true" />
-                  Always on
-                </span>
-              ) : (
-                <Switch
-                  id={`pref-${r.code}`}
-                  checked={enabled[r.code]}
-                  onCheckedChange={(on) =>
-                    setEnabled((p) => ({ ...p, [r.code]: on }))
-                  }
-                />
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+                  {r.label}
+                </Label>
+                {r.locked ? (
+                  <span
+                    id={`pref-${r.code}`}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground"
+                  >
+                    <Lock className="size-4" aria-hidden="true" />
+                    Always on
+                  </span>
+                ) : (
+                  <Switch
+                    id={`pref-${r.code}`}
+                    checked={enabled[r.code]}
+                    onCheckedChange={(on) =>
+                      setEnabled((p) => ({ ...p, [r.code]: on }))
+                    }
+                  />
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card px-4 py-3 max-lg:bottom-14 lg:left-[var(--sidebar-width)]">
-        <div className="mx-auto flex max-w-[760px] justify-end">
-          <Button type="submit" disabled={busy} className="max-sm:w-full">
-            {busy ? (
-              <Loader2 className="animate-spin" aria-hidden="true" />
-            ) : null}
-            Save changes
-          </Button>
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card px-4 py-3 max-lg:bottom-14 lg:left-[var(--sidebar-width)]">
+          <div className="mx-auto flex max-w-[760px] justify-end">
+            <Button type="submit" disabled={busy} className="max-sm:w-full">
+              {busy ? (
+                <Loader2 className="animate-spin" aria-hidden="true" />
+              ) : null}
+              Save changes
+            </Button>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </>
   );
 }

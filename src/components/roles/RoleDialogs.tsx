@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useClubSettings } from "@/hooks/useAdmin";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -146,6 +147,7 @@ export function WithdrawDialog({
   onWithdraw: (reason?: string) => void;
 }) {
   const [reason, setReason] = useState("");
+  const hours = useClubSettings().data?.withdrawalCutoffHours ?? 24;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -158,7 +160,7 @@ export function WithdrawDialog({
           <DialogDescription>
             {mode === "immediate"
               ? "The role opens for others straight away."
-              : "The meeting is less than 24 hours away, so ExComm must approve. You keep the role until they decide."}
+              : `The meeting is less than ${hours} hours away, so ExComm must approve. You keep the role until they decide.`}
           </DialogDescription>
         </DialogHeader>
         <form

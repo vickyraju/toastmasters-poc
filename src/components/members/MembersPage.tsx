@@ -25,9 +25,11 @@ import {
   EditMemberDialog,
   StepDownDialog,
 } from "./MemberDialogs";
+import { ImportDialog } from "./ImportDialog";
 
 type Dialog =
   | { kind: "add" }
+  | { kind: "import" }
   | { kind: "edit" | "remove" | "deactivate"; member: MemberRow }
   | null;
 const STATUS_STYLE = {
@@ -92,7 +94,14 @@ export function MembersPage() {
             <option value="removed">Removed</option>
           </select>
         </div>
-        <Button className="ml-auto" onClick={() => setDialog({ kind: "add" })}>
+        <Button
+          variant="outline"
+          className="ml-auto"
+          onClick={() => setDialog({ kind: "import" })}
+        >
+          Import CSV
+        </Button>
+        <Button onClick={() => setDialog({ kind: "add" })}>
           <Plus aria-hidden="true" />
           Add member
         </Button>
@@ -285,6 +294,7 @@ export function MembersPage() {
       </QueryBlock>
 
       {dialog?.kind === "add" ? <AddMemberDialog onClose={close} /> : null}
+      {dialog?.kind === "import" ? <ImportDialog onClose={close} /> : null}
       {dialog?.kind === "edit" ? (
         <EditMemberDialog
           member={dialog.member}

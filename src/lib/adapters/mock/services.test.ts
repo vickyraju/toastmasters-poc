@@ -2032,3 +2032,170 @@ describe("M12 status preview details", () => {
     });
   });
 });
+
+describe("club settings (S-18, settings.club.edit)", () => {
+  const good = {
+    clubName: "Inception Labs Toastmasters (demo)",
+    withdrawalCutoffHours: 12,
+    proofRequired: true,
+    consecutiveRepeatLimit: 2,
+    timerGraceSeconds: 45,
+    inactiveAfterDays: 90,
+    generateWeeksAhead: 6,
+  };
+  it("anyone signed in can read; only the President can change; the change is audited with before and after", async () => {
+    await as("IL1009");
+    expect(await s.settings.getClub()).toMatchObject({
+      withdrawalCutoffHours: 24,
+      proofRequired: false,
+      consecutiveRepeatLimit: null,
+      timerGraceSeconds: 30,
+      inactiveAfterDays: 60,
+      generateWeeksAhead: 4,
+    });
+    expect(await code(s.settings.updateClub(good))).toBe("FORBIDDEN");
+    await s.auth.signOut();
+    await as("IL1002");
+    expect(await code(s.settings.updateClub(good))).toBe("FORBIDDEN"); // VPE is not the President
+    await s.auth.signOut();
+    await as("IL1001");
+    await s.settings.updateClub(good);
+    expect(await s.settings.getClub()).toMatchObject(good);
+    const row = store.getState().audit.at(-1)!;
+    expect(row.action).toBe("settings.change");
+    expect(row.before).toMatchObject({
+      withdrawalCutoffHours: 24,
+      proofRequired: false,
+    });
+    expect(row.after).toMatchObject({
+      withdrawalCutoffHours: 12,
+      proofRequired: true,
+    });
+    expect(Object.keys(row.after!)).not.toContain("clubName"); // unchanged fields are not logged
+  });
+  it("validates ranges with field messages", async () => {
+    await as("IL1001");
+    for (const [patch, field] of [
+      [{ withdrawalCutoffHours: -1 }, "withdrawalCutoffHours"],
+      [{ timerGraceSeconds: 500 }, "timerGraceSeconds"],
+      [{ inactiveAfterDays: 2 }, "inactiveAfterDays"],
+      [{ generateWeeksAhead: 0 }, "generateWeeksAhead"],
+      [{ clubName: "  " }, "clubName"],
+      [{ consecutiveRepeatLimit: 0 }, "consecutiveRepeatLimit"],
+    ] as const)
+      await expect(
+        s.settings.updateClub({ ...good, ...patch }),
+      ).rejects.toMatchObject({
+        code: "VALIDATION",
+        extra: { fields: { [field]: expect.any(String) } },
+      });
+  });
+  it("the new values take effect: cutoff, proof required and the inactive window", async () => {
+    await as("IL1001");
+    await s.settings.updateClub({
+      ...good,
+      withdrawalCutoffHours: 1,
+      inactiveAfterDays: 7,
+    });
+    await s.auth.signOut();
+    await as("IL1011"); // Suresh, 2 Oct is 22 h away: now outside a 1 h cutoff
+    expect(await s.roles.withdraw(slot("ge"))).toEqual({
+      outcome: "withdrawn",
+    });
+    await s.auth.signOut();
+    await as("IL1003");
+    expect(
+      (await s.progress.clubTable()).filter((r) => r.inactive).length,
+    ).toBeGreaterThan(1); // 7 days: several members now count as inactive
+  });
+});
+
+describe("member CSV import (flow.md J-10 step 1)", () => {
+  const row = (line: number, o: Record<string, string> = {}) => ({
+    line,
+    employeeId: `IL70${line}`,
+    name: `Person ${line}`,
+    email: `p${line}@example.com`,
+    toastmastersId: "",
+    pathway: "",
+    level: "",
+    ...o,
+  });
+  it("preview validates every row and writes nothing; commit adds only the valid ones", async () => {
+    await as("IL1003");
+    const rows = [
+      row(2),
+      row(3, { level: "3", pathway: "Leadership" }),
+      row(4, { employeeId: "il1009" }), // already exists
+      row(5, { email: "not an email" }),
+      row(6, { name: "" }),
+      row(7),
+      row(8, { level: "9" }),
+    ];
+    const before = (await s.members.list()).length;
+    const preview = await s.members.importCsv(rows, false);
+    expect(preview).toMatchObject({ added: 0, valid: 3, invalid: 4 });
+    expect(preview.rows.find((r) => r.line === 4)?.errors).toEqual([
+      "A member with this employee ID already exists.",
+    ]);
+    expect(preview.rows.find((r) => r.line === 5)?.errors[0]).toMatch(/email/i);
+    expect(preview.rows.find((r) => r.line === 6)?.errors[0]).toMatch(/name/i);
+    expect(preview.rows.find((r) => r.line === 8)?.errors[0]).toMatch(/level/i);
+    expect((await s.members.list()).length).toBe(before); // preview wrote nothing
+    const done = await s.members.importCsv(rows, true);
+    expect(done).toMatchObject({ added: 3, invalid: 4 });
+    const list = await s.members.list();
+    expect(list.length).toBe(before + 3);
+    expect(list.find((m) => m.employeeId === "IL703")).toMatchObject({
+      currentLevel: 3,
+      pathway: "Leadership",
+      status: "active",
+    });
+    expect(list.find((m) => m.employeeId === "IL702")?.currentLevel).toBe(1); // blank level defaults to 1
+    expect(
+      store.getState().audit.filter((a) => a.action === "member.add"),
+    ).toHaveLength(3);
+  });
+  it("duplicates inside the file: the first one wins, later ones are flagged", async () => {
+    await as("IL1003");
+    const r = await s.members.importCsv(
+      [
+        row(2, { employeeId: "IL7500", email: "same@example.com" }),
+        row(3, { employeeId: "il7500", email: "other@example.com" }),
+        row(4, { employeeId: "IL7501", email: "SAME@example.com" }),
+      ],
+      true,
+    );
+    expect(r).toMatchObject({ added: 1, invalid: 2 });
+    expect(r.rows.find((x) => x.line === 3)?.errors).toEqual([
+      "This employee ID appears earlier in the file.",
+    ]);
+    expect(r.rows.find((x) => x.line === 4)?.errors).toEqual([
+      "This email appears earlier in the file.",
+    ]);
+  });
+  it("only ExComm can import; an empty list and an oversized list are refused", async () => {
+    await as("IL1009");
+    expect(await code(s.members.importCsv([row(2)], true))).toBe("FORBIDDEN");
+    await s.auth.signOut();
+    await as("IL1003");
+    expect(await code(s.members.importCsv([], true))).toBe("VALIDATION");
+    expect(
+      await code(
+        s.members.importCsv(
+          Array.from({ length: 501 }, (_, i) =>
+            row(i + 2, { employeeId: `IL8${i}`, email: `b${i}@example.com` }),
+          ),
+          true,
+        ),
+      ),
+    ).toBe("VALIDATION");
+  });
+  it("imported names that look like formulas are stored as typed (they are neutralised only when exported)", async () => {
+    await as("IL1003");
+    await s.members.importCsv([row(2, { name: "=1+1" })], true);
+    expect(
+      (await s.members.list()).find((m) => m.employeeId === "IL702")?.name,
+    ).toBe("=1+1");
+  });
+});

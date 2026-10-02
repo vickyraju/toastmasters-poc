@@ -2,7 +2,11 @@
 // adapter implements them now and an API adapter will later. Every method returns a Promise.
 import type { LifecycleWarning } from "../domain/rules/lifecycle";
 import type { VoteView } from "../domain/rules/ballot";
-import type { MemberAddValues, MemberEditValues } from "../domain/schemas";
+import type {
+  ClubSettingsValues,
+  MemberAddValues,
+  MemberEditValues,
+} from "../domain/schemas";
 import type {
   MeetingTypeValues,
   ProjectValues,
@@ -11,6 +15,7 @@ import type {
 } from "../domain/schemas";
 import type {
   AuditAction,
+  ClubSettings,
   NotifCode,
   PathwaysProject,
   ReportKind,
@@ -381,7 +386,28 @@ export interface RemovalImpact {
   blocked: string | null;
 }
 
+/** One CSV line, as typed. `line` is the line in the file (the header is line 1). */
+export interface ImportRow {
+  line: number;
+  employeeId: string;
+  name: string;
+  email: string;
+  toastmastersId: string;
+  pathway: string;
+  level: string;
+}
+export interface ImportResult {
+  rows: { line: number; name: string; employeeId: string; errors: string[] }[];
+  /** Rows that pass every check. */
+  valid: number;
+  invalid: number;
+  /** Members created: 0 for a preview. */
+  added: number;
+}
+
 export interface MembersService {
+  /** Check every row; with `commit`, add the valid ones and skip the rest (flow.md J-10). ExComm only. */
+  importCsv(rows: ImportRow[], commit: boolean): Promise<ImportResult>;
   /** Every member including removed ones; the screen filters by status. */
   list(): Promise<MemberRow[]>;
   get(id: string): Promise<Member>;
@@ -430,6 +456,10 @@ export interface NotifPrefRow {
   locked: boolean;
 }
 export interface SettingsService {
+  /** Club-wide settings; every signed-in member can read them (the UI shows the cutoff and the inactive window). */
+  getClub(): Promise<ClubSettings>;
+  /** President only (schema.md section 6). Writes an audit row with the changed fields. */
+  updateClub(input: ClubSettingsValues): Promise<ClubSettings>;
   notificationPrefs(): Promise<NotifPrefRow[]>;
   /** `false` opts out; a locked type is refused. Types left out are unchanged. */
   savePrefs(changes: Partial<Record<NotifCode, boolean>>): Promise<void>;

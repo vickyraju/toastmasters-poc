@@ -76,3 +76,13 @@ export const useTransferPresidency = () =>
     () => getServices().positions.transfer(),
     () => "Presidency transferred.",
   );
+
+export const useImportMembers = () =>
+  useAction(
+    (a: {
+      rows: Parameters<
+        ReturnType<typeof getServices>["members"]["importCsv"]
+      >[0];
+      commit: boolean;
+    }) => getServices().members.importCsv(a.rows, a.commit),
+  );

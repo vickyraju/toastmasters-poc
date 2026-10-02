@@ -110,5 +110,5 @@ This is `mock-data.md` section 9, and it is also an automated test
 ## Not built yet
 
 - The backend, real authentication and file storage (Phase 2, `implementation_plan-toast.md` section 3).
-- CSV import of members (`flow.md` J-10), club-level settings screen, Teams notifications.
+- Teams notifications (FR-41, V1.5).
 - Uploaded files (agendas, proofs) exist only for the browser session in mock mode.

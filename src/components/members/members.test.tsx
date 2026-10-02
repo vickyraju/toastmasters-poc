@@ -442,3 +442,105 @@ describe("S-13 Positions", () => {
     });
   });
 });
+
+describe("S-11 Import CSV", () => {
+  const csv = (text: string) =>
+    new File([text], "members.csv", { type: "text/csv" });
+  const openImport = async () => {
+    renderWithQuery(<MembersPage />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Import CSV" }, WAIT),
+    );
+    return screen.findByRole("dialog", {}, WAIT);
+  };
+
+  it("previews what will be added and why rows are skipped, then adds only the valid ones", async () => {
+    await as("IL1003");
+    const dialog = await openImport();
+    fireEvent.change(within(dialog).getByLabelText("CSV file"), {
+      target: {
+        files: [
+          csv(
+            'Employee ID,Name,Email,Level\nIL6001,Ada Lovelace,ada@example.com,2\nIL1009,Dup Person,dup@example.com,\nIL6002,Bad Mail,nope,1\nIL6003,"Comma, Name",comma@example.com,',
+          ),
+        ],
+      },
+    });
+    expect(
+      await within(dialog).findByText(
+        "2 will be added, 2 will be skipped.",
+        {},
+        WAIT,
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("Line 3").closest("li")).toHaveTextContent(
+      "A member with this employee ID already exists.",
+    );
+    expect(within(dialog).getByText("Line 4").closest("li")).toHaveTextContent(
+      /email/i,
+    );
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Add 2 members" }),
+    );
+    await vi.waitFor(
+      () =>
+        expect(toasts.success).toHaveBeenCalledWith(
+          "2 members added. 2 skipped.",
+        ),
+      WAIT,
+    );
+    const list = await getServices().members.list();
+    expect(list.find((m) => m.employeeId === "IL6001")).toMatchObject({
+      name: "Ada Lovelace",
+      currentLevel: 2,
+    });
+    expect(list.find((m) => m.employeeId === "IL6003")?.name).toBe(
+      "Comma, Name",
+    );
+    expect(list.some((m) => m.employeeId === "IL6002")).toBe(false);
+  });
+
+  it("a file with a missing column or no members explains itself and offers no Add button", async () => {
+    await as("IL1003");
+    const dialog = await openImport();
+    fireEvent.change(within(dialog).getByLabelText("CSV file"), {
+      target: { files: [csv("employee_id,name\nIL1,A")] },
+    });
+    expect(
+      await within(dialog).findByRole("alert", {}, WAIT),
+    ).toHaveTextContent("Missing column: email");
+    expect(
+      within(dialog).getByRole("button", { name: "Add members" }),
+    ).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText("CSV file"), {
+      target: { files: [csv("employee_id,name,email\n")] },
+    });
+    expect(
+      await within(dialog).findByText(
+        "The file has a header but no members.",
+        {},
+        WAIT,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("a file where every row is bad adds nothing", async () => {
+    await as("IL1003");
+    const dialog = await openImport();
+    fireEvent.change(within(dialog).getByLabelText("CSV file"), {
+      target: {
+        files: [csv("employee_id,name,email\nIL1009,Dup,dup@example.com")],
+      },
+    });
+    expect(
+      await within(dialog).findByText(
+        "0 will be added, 1 will be skipped.",
+        {},
+        WAIT,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "Add members" }),
+    ).toBeDisabled();
+  });
+});

@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { QueryBlock } from "@/components/shared/QueryBlock";
 import { useDecideCompletion, useNow, useVerifyQueue } from "@/hooks/useHome";
 import { useClubProgress } from "@/hooks/useProgress";
+import { useClubSettings } from "@/hooks/useAdmin";
 import { useCan } from "@/hooks/useSession";
 import type { VerifyQueueItem } from "@/lib/services";
 import { formatIST } from "@/lib/time/ist";
@@ -57,6 +58,7 @@ function MembersTable() {
   const table = useClubProgress();
   const nowQ = useNow();
   const [inactiveOnly, setInactiveOnly] = useState(false);
+  const days = useClubSettings().data?.inactiveAfterDays ?? 60;
   const query = { ...table, isPending: table.isPending || nowQ.isPending };
   return (
     <div className="space-y-3">
@@ -71,7 +73,7 @@ function MembersTable() {
             : "border-border-input hover:bg-primary-soft",
         )}
       >
-        Inactive 60+ days
+        Inactive {days}+ days
       </button>
       <QueryBlock
         query={query}

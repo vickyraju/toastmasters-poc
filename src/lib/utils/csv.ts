@@ -14,3 +14,50 @@ function cell(v: Cell): string {
 export function toCsv(rows: Cell[][]): string {
   return rows.map((r) => r.map(cell).join(",") + "\r\n").join("");
 }
+
+/** RFC 4180 reader: quoted cells, doubled quotes, newlines inside quotes, CRLF or LF, leading BOM. Blank lines are skipped. */
+export function parseCsv(text: string): string[][] {
+  const src = text.replace(/^﻿/, "");
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  let sawAny = false;
+  const endCell = () => {
+    row.push(cell);
+    cell = "";
+  };
+  const endRow = () => {
+    endCell();
+    if (row.some((c) => c !== "") || row.length > 1) rows.push(row);
+    row = [];
+    sawAny = false;
+  };
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (src[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else quoted = false;
+      } else cell += ch;
+    } else if (ch === '"' && cell === "") {
+      quoted = true;
+      sawAny = true;
+    } else if (ch === ",") {
+      endCell();
+      sawAny = true;
+    } else if (ch === "\r" || ch === "\n") {
+      if (ch === "\r" && src[i + 1] === "\n") i++;
+      endRow();
+    } else {
+      cell += ch;
+      sawAny = true;
+    }
+  }
+  if (quoted)
+    throw new Error("The file has an opening quote that is never closed.");
+  if (sawAny || cell !== "" || row.length) endRow();
+  return rows;
+}

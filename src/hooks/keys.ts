@@ -16,6 +16,7 @@ export const qk = {
   members: ["members"] as const,
   audit: (f: unknown) => ["audit", f] as const,
   prefs: ["notif-prefs"] as const,
+  club: ["club-settings"] as const,
   profile: (id: string) => ["profile", id] as const,
   impact: (id: string) => ["impact", id] as const,
   meetingTypes: ["meeting-types"] as const,

@@ -327,3 +327,89 @@ describe("S-18 Settings", () => {
     expect((await s.auth.getCurrentUser())?.name).toBe("Mohammed F");
   });
 });
+
+describe("S-18 Club settings (President only)", () => {
+  it("only the President sees the card; ExComm and Members do not", async () => {
+    await as("IL1002");
+    const { unmount } = renderWithQuery(<SettingsPage />);
+    await screen.findByLabelText("Name (required)", {}, WAIT);
+    expect(
+      screen.queryByRole("heading", { name: "Club settings" }),
+    ).not.toBeInTheDocument();
+    unmount();
+    await as("IL1001");
+    renderWithQuery(<SettingsPage />);
+    expect(
+      await screen.findByRole("heading", { name: "Club settings" }, WAIT),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the defaults, validates inline, saves, and the change is audited", async () => {
+    await as("IL1001");
+    renderWithQuery(<SettingsPage />);
+    const card = (
+      await screen.findByRole("heading", { name: "Club settings" }, WAIT)
+    ).closest("section") as HTMLElement;
+    expect(
+      await within(card).findByLabelText("Withdrawal cutoff (hours)", {}, WAIT),
+    ).toHaveValue(24);
+    expect(within(card).getByLabelText("Timer grace (seconds)")).toHaveValue(
+      30,
+    );
+    expect(within(card).getByLabelText("Inactive after (days)")).toHaveValue(
+      60,
+    );
+    expect(
+      within(card).getByLabelText("Generate meetings (weeks ahead)"),
+    ).toHaveValue(4);
+    expect(within(card).getByLabelText("Consecutive repeat limit")).toHaveValue(
+      null,
+    ); // off
+    expect(
+      within(card).getByRole("checkbox", { name: /Require proof/ }),
+    ).not.toBeChecked();
+
+    fireEvent.change(within(card).getByLabelText("Timer grace (seconds)"), {
+      target: { value: "500" },
+    });
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Save club settings" }),
+    );
+    expect(
+      await within(card).findByText("At most 120 seconds", {}, WAIT),
+    ).toBeInTheDocument();
+
+    fireEvent.change(within(card).getByLabelText("Timer grace (seconds)"), {
+      target: { value: "45" },
+    });
+    fireEvent.change(within(card).getByLabelText("Withdrawal cutoff (hours)"), {
+      target: { value: "12" },
+    });
+    fireEvent.click(
+      within(card).getByRole("checkbox", { name: /Require proof/ }),
+    );
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Save club settings" }),
+    );
+    await vi.waitFor(
+      () =>
+        expect(toasts.toast.success).toHaveBeenCalledWith(
+          "Club settings saved.",
+        ),
+      WAIT,
+    );
+    const s = getServices();
+    expect(await s.settings.getClub()).toMatchObject({
+      withdrawalCutoffHours: 12,
+      timerGraceSeconds: 45,
+      proofRequired: true,
+    });
+    expect(
+      (await s.audit.list({ action: "settings.change" }))[0].after,
+    ).toMatchObject({
+      withdrawalCutoffHours: 12,
+      timerGraceSeconds: 45,
+      proofRequired: true,
+    });
+  });
+});
