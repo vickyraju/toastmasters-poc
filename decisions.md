@@ -80,3 +80,17 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 - **Live board:** `roles.subscribe()` fires on any store change; in mock mode that includes other tabs (the persisted store rehydrates on the `storage` event). The board refetches on it.
 - **Minimal `templates` service** (`roleTemplates()`, `projects()`) for the Add role and speech-details forms; S-06 editing extends it in M7.
 - **Store writes that change nothing are skipped** (`mutate` compares before and after). Without this, reading tasks ran the time-based jobs, which wrote the store, which woke the live-update listener, which refetched tasks: an endless loop that kept the board from refreshing after a click. Found in the browser; covered by a "store churn" test.
+
+## M7 (2026-10-02)
+
+- **Seeded Friday meetings all carry `template_id = tpl-friday`** (2, 9, 16, 23 Oct and the earlier Fridays), so R-08 generation recognises existing ones and never duplicates. The 31 Oct contest has none.
+- **`recurringDates` (R-08)**: IST weekdays from today through `weeksAhead` weeks, minus skip dates, minus times already past. "Apply to Draft meetings" updates only generated Draft meetings with nobody in a role, and never touches Open or later ones.
+- **N-08 fires once per new meeting type, role or recurring template**, to every active member; edits do not notify. Link: `/meetings`.
+- **Custom roles on a new meeting are added to the role catalog** (mock-data.md 4.2 lists Chief Judge, Contestant and Sergeant-at-Arms there). A name that already exists reuses that role.
+- **Open all drafts is a service method** (`meetings.openAllDrafts`), but the plan's "bulk Open all drafts" has no button in design.md. I put it on the services only; no button yet. **Needs your call** whether S-03 gets one.
+- **Cancel's confirm shows its effect in one sentence and needs a reason** (R-07). Status changes show their warnings (open roles, missing reports) from a dry run (`meetings.statusPreview`) before you confirm.
+- **Edit mode changes basics, date and location only.** Roles are managed on the Roles tab; the meeting type cannot change after creation. Saving a changed time notifies role holders (N-03).
+- **Agenda files in mock mode are object URLs for the session** (R-14); they disappear on a full reload. The service still validates type and size, and sanitises the file name.
+- **A form and its service parse the same values twice**, so the schemas are idempotent (`optionalText` and the link field accept `null`). Found when the template form saved a parsed `null` venue and the service rejected it.
+- **"Open for roles" on the form saves and opens in one step**; the intent is held in a ref because the click and the submit happen in one event, before React re-renders. Found by a test: the button used to save a draft only.
+- **Dev panel gained "Generate recurring meetings"** (plan: "callable from the dev panel"); the same button is on S-06 as "Generate meetings now" for ExComm.

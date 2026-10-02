@@ -18,6 +18,7 @@ import type { MeetingStatus } from "@/lib/domain/types";
 import { formatMeetingRange } from "@/lib/time/ist";
 import { cn } from "@/lib/utils";
 import { AgendaTab } from "./AgendaTab";
+import { MeetingActions } from "./MeetingActions";
 import { OverviewTab } from "./OverviewTab";
 import { safeHttpUrl } from "./safeUrl";
 
@@ -106,6 +107,7 @@ function Loaded({ meeting: m }: { meeting: Detail }) {
             </>
           ) : null}
         </p>
+        <MeetingActions id={m.id} status={m.status} />
       </header>
 
       {m.status === "cancelled" ? (

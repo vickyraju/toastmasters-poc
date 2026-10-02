@@ -12,7 +12,7 @@ import { newId } from "../../domain/ids";
 import { now } from "../../time/clock";
 import { assertCan, me, mutate, type Ctx } from "./runtime";
 import { can } from "../../permissions/can";
-import type { Meeting, MeetingRole, MeetingStatus } from "../../domain/types";
+import type { Meeting, MeetingStatus } from "../../domain/types";
 import type { MockData } from "./state";
 import {
   assertEditable,
@@ -22,6 +22,8 @@ import {
   tmodHolder,
   tmplOf,
 } from "./helpers";
+import { buildSlots } from "./slots";
+import { newId as newRoleId } from "../../domain/ids";
 
 const ALLOWED_FILES: Record<string, string[]> = {
   "application/pdf": ["pdf"],
@@ -37,48 +39,6 @@ const validation = (fields: Record<string, string>) =>
   new AppError("VALIDATION", Object.values(fields)[0] ?? "Check the form.", {
     fields,
   });
-
-/** Create the slots for a new meeting: `roles` or the meeting type's role list (J-07). */
-function buildSlots(
-  d: MockData,
-  meetingId: string,
-  roles: { roleTemplateId: string; count: number }[],
-): MeetingRole[] {
-  const slots: MeetingRole[] = [];
-  let order = 0;
-  for (const { roleTemplateId, count } of roles) {
-    const tpl = d.roleTemplates.find((t) => t.id === roleTemplateId);
-    if (!tpl) throw new AppError("NOT_FOUND", "Role not found in the catalog.");
-    for (let i = 1; i <= count; i++) {
-      const suffix = count > 1 ? ` ${i}` : "";
-      const base = tpl.code === "tmod" ? "tmod" : tpl.code.replace(/_/g, "-");
-      slots.push({
-        id: `${meetingId}:${base}${count > 1 ? `-${i}` : ""}`,
-        meetingId,
-        roleTemplateId,
-        label: `${tpl.name}${suffix}`,
-        sortOrder: order++,
-        memberId: null,
-        status: "open",
-        isMain: tpl.category === "main",
-        assignedBy: null,
-        assignedAt: null,
-        version: 0,
-        evaluatesSlotId: null,
-      });
-    }
-  }
-  for (const s of slots) {
-    if (tmplOf(d, s).isEvaluator) {
-      const n = s.id.split("-").pop();
-      s.evaluatesSlotId =
-        slots.find(
-          (x) => x.id.endsWith(`speaker-${n}`) && tmplOf(d, x).isSpeaker,
-        )?.id ?? null;
-    }
-  }
-  return slots;
-}
 
 /** One lifecycle transition with its side effects (R-07). Used by setStatus and cancel. */
 function transition(
@@ -254,11 +214,38 @@ export function meetingsService({ store, call }: Ctx): MeetingsService {
             createdBy: actor.id,
           };
           d.meetings.push(m);
+          // Custom roles are added to the catalog first (mock-data.md 4.2 keeps them there), then slotted in.
+          const custom = (input.customRoles ?? []).map((c) => {
+            const name = c.name.trim();
+            if (!name || c.count < 1)
+              throw validation({
+                customRoles:
+                  "Give each custom role a name and a count of at least 1.",
+              });
+            const existing = d.roleTemplates.find(
+              (t) => t.name.toLowerCase() === name.toLowerCase(),
+            );
+            const tpl = existing ?? {
+              id: `rt-${newRoleId("c").slice(2)}`,
+              code: name
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_|_$/g, ""),
+              name,
+              category: c.category,
+              reportKind: null,
+              isSpeaker: false,
+              isEvaluator: false,
+              defaultCount: c.count,
+            };
+            if (!existing) d.roleTemplates.push(tpl);
+            return { roleTemplateId: tpl.id, count: c.count };
+          });
           d.meetingRoles.push(
             ...buildSlots(
               d,
               id,
-              roles.map((r) => ({
+              [...roles, ...custom].map((r) => ({
                 roleTemplateId: r.roleTemplateId,
                 count: r.count,
               })),
@@ -372,6 +359,44 @@ export function meetingsService({ store, call }: Ctx): MeetingsService {
             wordOfTheDay: m.wordOfTheDay,
           });
           return { ...m };
+        }),
+      ),
+    statusPreview: (id, status, reason) =>
+      call((sid) => {
+        const d = structuredClone(store.getState()); // dry run on a copy
+        const { actor } = me(d, sid);
+        assertCan(
+          actor,
+          status === "completed" ? "meeting.complete" : "meeting.status",
+        );
+        try {
+          return {
+            ok: true as const,
+            warnings: transition(d, actor.id, id, status, reason).warnings,
+          };
+        } catch (e) {
+          if (e instanceof AppError && e.code !== "NOT_FOUND")
+            return { ok: false as const, message: e.message };
+          throw e;
+        }
+      }),
+    openAllDrafts: () =>
+      call((sid) =>
+        mutate(store, (d) => {
+          const { actor } = me(d, sid);
+          assertCan(actor, "meeting.status");
+          let opened = 0;
+          let skipped = 0;
+          for (const m of d.meetings.filter((x) => x.status === "draft")) {
+            try {
+              transition(d, actor.id, m.id, "open");
+              opened++;
+            } catch (e) {
+              if (!(e instanceof AppError)) throw e;
+              skipped++; // no venue or link, or no roles: stays Draft (R-07)
+            }
+          }
+          return { opened, skipped };
         }),
       ),
     agendaOutline: (id) =>

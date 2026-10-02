@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDevAction, useDevStatus } from "@/hooks/useDev";
+import { useGenerateRecurring } from "@/hooks/useTemplates";
 import { formatIST } from "@/lib/time/ist";
 
 const HOUR = 3_600_000;
@@ -14,6 +15,7 @@ const HOUR = 3_600_000;
 export function DevPanel() {
   const status = useDevStatus();
   const act = useDevAction();
+  const generate = useGenerateRecurring();
   const busy = act.isPending;
 
   return (
@@ -87,6 +89,13 @@ export function DevPanel() {
             onClick={() => act.mutate({ kind: "testNotification" })}
           >
             Send test notification
+          </Button>
+          <Button
+            variant="outline"
+            disabled={busy || generate.isPending}
+            onClick={() => generate.mutate(undefined)}
+          >
+            Generate recurring meetings
           </Button>
           <Button
             variant="outline"

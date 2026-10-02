@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/Card";
 import { QueryBlock } from "@/components/shared/QueryBlock";
 import { useAgendaOutline } from "@/hooks/useMeeting";
+import { useUploadAgenda } from "@/hooks/useMeetingActions";
+import { useCan } from "@/hooks/useSession";
+import { AgendaUpload } from "./AgendaUpload";
 import type { FileRecord } from "@/lib/domain/types";
 import type { MeetingDetail } from "@/lib/services";
 import { formatIST } from "@/lib/time/ist";
@@ -19,6 +22,8 @@ export function fileUrl(f: FileRecord): string {
 /** S-04 Agenda: the uploaded file (PDF embedded, image shown, DOCX downloaded), then the template outline. */
 export function AgendaTab({ meeting: m }: { meeting: MeetingDetail }) {
   const outline = useAgendaOutline(m.id);
+  const canUpload = useCan("meeting.agenda.upload");
+  const upload = useUploadAgenda();
   const f = m.agendaFile;
 
   return (
@@ -59,6 +64,15 @@ export function AgendaTab({ meeting: m }: { meeting: MeetingDetail }) {
             No agenda uploaded yet
           </p>
         )}
+        {canUpload ? (
+          <div className="mt-4">
+            <AgendaUpload
+              busy={upload.isPending}
+              label={f ? "Replace agenda" : "Upload agenda"}
+              onFile={(file) => upload.mutate({ id: m.id, file })}
+            />
+          </div>
+        ) : null}
       </Card>
 
       <Card title="Agenda outline">

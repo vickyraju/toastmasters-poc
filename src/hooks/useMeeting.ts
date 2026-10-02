@@ -4,10 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { getServices } from "@/lib/services";
 import { qk } from "./keys";
 
-export function useMeeting(id: string) {
+export function useMeeting(id: string, enabled = true) {
   return useQuery({
     queryKey: qk.meeting(id),
     queryFn: () => getServices().meetings.get(id),
+    enabled,
   });
 }
 

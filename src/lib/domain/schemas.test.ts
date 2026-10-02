@@ -199,3 +199,117 @@ describe("speakerDetailsInput", () => {
     ).toBe(false);
   });
 });
+
+describe("template schemas", () => {
+  it("recurring: time format, bounds, link, and empty venue becomes null", async () => {
+    const { recurringInput } = await import("./schemas");
+    const ok = {
+      name: "Fri",
+      meetingTypeId: "t",
+      weekday: "5",
+      startTime: "16:00",
+      durationMinutes: "90",
+      venue: " ",
+      meetingLink: "",
+      weeksAhead: "4",
+      skipDates: [],
+      isActive: true,
+    };
+    expect(recurringInput.parse(ok)).toMatchObject({
+      weekday: 5,
+      durationMinutes: 90,
+      venue: null,
+      meetingLink: null,
+      weeksAhead: 4,
+    });
+    expect(recurringInput.safeParse({ ...ok, startTime: "4pm" }).success).toBe(
+      false,
+    );
+    expect(recurringInput.safeParse({ ...ok, weeksAhead: 13 }).success).toBe(
+      false,
+    );
+    expect(
+      recurringInput.safeParse({ ...ok, meetingLink: "ftp://x" }).success,
+    ).toBe(false);
+  });
+  it("project: max must exceed min", async () => {
+    const { projectInput } = await import("./schemas");
+    expect(
+      projectInput.safeParse({
+        pathway: "n/a",
+        level: 0,
+        name: "Demo",
+        minSeconds: 480,
+        maxSeconds: 600,
+      }).success,
+    ).toBe(true);
+    expect(
+      projectInput.safeParse({
+        pathway: "n/a",
+        level: 0,
+        name: "Demo",
+        minSeconds: 600,
+        maxSeconds: 600,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("meetingFormInput and hasLocation", () => {
+  it("parses IST wall-clock fields and role counts", async () => {
+    const { meetingFormInput, hasLocation } = await import("./schemas");
+    const v = meetingFormInput.parse({
+      title: " Final ",
+      meetingTypeId: "t",
+      date: "2026-10-31",
+      startTime: "10:00",
+      durationMinutes: "150",
+      venue: "",
+      meetingLink: "",
+      roles: [{ roleTemplateId: "r", count: "2" }],
+      customRoles: [],
+    });
+    expect(v).toMatchObject({
+      title: "Final",
+      durationMinutes: 150,
+      roles: [{ roleTemplateId: "r", count: 2 }],
+    });
+    expect(hasLocation(v)).toBe(false);
+    expect(hasLocation({ venue: "", meetingLink: "https://x.example" })).toBe(
+      true,
+    );
+    expect(
+      meetingFormInput.safeParse({ ...v, durationMinutes: 721 }).success,
+    ).toBe(false);
+    expect(meetingFormInput.safeParse({ ...v, date: "" }).success).toBe(false);
+    expect(
+      meetingFormInput.safeParse({
+        ...v,
+        customRoles: [{ name: " ", category: "main", count: 1 }],
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("parsing twice gives the same result (form, then service)", () => {
+  it("recurringInput is idempotent", async () => {
+    const { recurringInput } = await import("./schemas");
+    const once = recurringInput.parse({
+      name: "Fri",
+      meetingTypeId: "t",
+      weekday: "5",
+      startTime: "16:00",
+      durationMinutes: "90",
+      venue: "",
+      meetingLink: "",
+      weeksAhead: "4",
+      skipDates: [],
+      isActive: true,
+    });
+    expect(once).toMatchObject({ venue: null, meetingLink: null });
+    expect(recurringInput.parse(once)).toEqual(once);
+    expect(
+      recurringInput.safeParse({ ...once, meetingLink: "ftp://x" }).success,
+    ).toBe(false);
+  });
+});

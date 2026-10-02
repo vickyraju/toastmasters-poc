@@ -766,3 +766,245 @@ describe("store churn", () => {
     expect(writes).toBe(0);
   });
 });
+
+describe("M7 meetings and templates", () => {
+  const input = (o = {}) => ({
+    name: "T",
+    meetingTypeId: "mt-regular",
+    weekday: 5,
+    startTime: "16:00",
+    durationMinutes: 90,
+    venue: "",
+    meetingLink: "",
+    weeksAhead: 4,
+    skipDates: [] as string[],
+    isActive: true,
+    ...o,
+  });
+
+  it("generateRecurring is idempotent and creates nothing new for the seed (16 and 23 Oct exist)", async () => {
+    await as("IL1003");
+    expect((await s.templates.generateRecurring()).created).toBe(0);
+    clock = Date.parse("2026-10-10T10:00:00+05:30");
+    const first = await s.templates.generateRecurring();
+    expect(first.created).toBeGreaterThan(0);
+    expect((await s.templates.generateRecurring()).created).toBe(0);
+    const made = store
+      .getState()
+      .meetings.filter(
+        (m) => m.templateId === "tpl-friday" && m.startsAt > "2026-10-24",
+      );
+    expect(made.every((m) => m.status === "draft")).toBe(true);
+    expect(
+      store.getState().meetingRoles.filter((r) => r.meetingId === made[0].id),
+    ).toHaveLength(12);
+  });
+  it("skip dates are honoured", async () => {
+    await as("IL1003");
+    const t = await s.templates.saveRecurring(
+      "tpl-friday",
+      input({ skipDates: ["2026-10-30"], weeksAhead: 6, venue: "Room B" }),
+    );
+    expect(t.skipDates).toEqual(["2026-10-30"]);
+    await s.templates.generateRecurring();
+    expect(
+      store
+        .getState()
+        .meetings.some((m) => m.startsAt.startsWith("2026-10-30")),
+    ).toBe(false);
+    expect(
+      store
+        .getState()
+        .meetings.some(
+          (m) =>
+            m.startsAt.startsWith("2026-10-30") ||
+            m.startsAt === "2026-10-30T10:30:00.000Z",
+        ),
+    ).toBe(false);
+  });
+  it("apply to drafts updates unfilled Draft meetings from the template only", async () => {
+    await as("IL1003");
+    await s.templates.saveRecurring(
+      "tpl-friday",
+      input({ startTime: "17:00", venue: "Room C" }),
+      true,
+    );
+    const d = store.getState().meetings;
+    expect(d.find((m) => m.id === "mtg-2026-10-16")).toMatchObject({
+      startsAt: "2026-10-16T11:30:00.000Z",
+      venue: "Room C",
+    });
+    expect(d.find((m) => m.id === "mtg-2026-10-02")?.startsAt).toBe(
+      "2026-10-02T10:30:00.000Z",
+    ); // Open: untouched
+    await s.templates.saveRecurring(
+      "tpl-friday",
+      input({ startTime: "18:00" }),
+      false,
+    );
+    expect(
+      store.getState().meetings.find((m) => m.id === "mtg-2026-10-16")
+        ?.startsAt,
+    ).toBe("2026-10-16T11:30:00.000Z");
+  });
+  it("a new meeting type notifies every active member (N-08) once; editing does not", async () => {
+    await as("IL1003");
+    const type = await s.templates.saveMeetingType(null, {
+      name: "Panel",
+      defaultDurationMinutes: 60,
+      isActive: true,
+      roles: [{ roleTemplateId: "rt-tmod", count: 1 }],
+      agendaItems: [
+        { title: "Panel", durationMinutes: 45, roleTemplateId: null },
+      ],
+    });
+    expect(
+      store.getState().notifications.filter((n) => n.code === "N-08"),
+    ).toHaveLength(14);
+    await s.templates.saveMeetingType(type.id, {
+      name: "Panel talk",
+      defaultDurationMinutes: 60,
+      isActive: true,
+      roles: [],
+      agendaItems: [],
+    });
+    expect(
+      store.getState().notifications.filter((n) => n.code === "N-08"),
+    ).toHaveLength(14);
+    expect(
+      (await s.templates.meetingTypes()).find((t) => t.id === type.id),
+    ).toMatchObject({ name: "Panel talk", roles: [], agendaItems: [] });
+    expect(store.getState().audit.at(-1)?.action).toBe("template.change");
+  });
+  it("names must be unique; members cannot edit templates", async () => {
+    await as("IL1003");
+    expect(
+      await code(
+        s.templates.saveMeetingType(null, {
+          name: "regular meeting",
+          defaultDurationMinutes: 60,
+          isActive: true,
+          roles: [],
+          agendaItems: [],
+        }),
+      ),
+    ).toBe("VALIDATION");
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(await code(s.templates.saveRecurring(null, input()))).toBe(
+      "FORBIDDEN",
+    );
+    expect(await code(s.templates.meetingTypes())).toBe("ok");
+  });
+  it("role catalog and project timings: add a role and a custom project", async () => {
+    await as("IL1003");
+    const r = await s.templates.saveRoleTemplate(null, {
+      name: "Quizmaster",
+      category: "main",
+      reportKind: null,
+      isSpeaker: false,
+      isEvaluator: false,
+      defaultCount: 1,
+    });
+    expect(r.code).toBe("quizmaster");
+    expect(
+      await code(
+        s.templates.saveRoleTemplate(null, {
+          name: "Quizmaster",
+          category: "main",
+          reportKind: null,
+          isSpeaker: false,
+          isEvaluator: false,
+          defaultCount: 1,
+        }),
+      ),
+    ).toBe("VALIDATION");
+    const p = await s.templates.saveProject(null, {
+      pathway: "n/a",
+      level: 0,
+      name: "Demo 2",
+      minSeconds: 60,
+      maxSeconds: 120,
+    });
+    expect(p.isCustom).toBe(true);
+  });
+  it("create meeting with custom roles; they join the catalog", async () => {
+    await as("IL1003");
+    const m = await s.meetings.create({
+      title: "Final",
+      meetingTypeId: "mt-contest",
+      startsAt: "2026-11-14T04:30:00.000Z",
+      endsAt: "2026-11-14T07:00:00.000Z",
+      venue: "Room B",
+      customRoles: [
+        { name: "Chief Judge Two", category: "main", count: 1 },
+        { name: "Usher", category: "support", count: 2 },
+      ],
+    });
+    const labels = store
+      .getState()
+      .meetingRoles.filter((x) => x.meetingId === m.id)
+      .map((x) => x.label);
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "Chief Judge Two",
+        "Usher 1",
+        "Usher 2",
+        "Toastmaster of the Day",
+      ]),
+    );
+    expect(
+      (await s.templates.roleTemplates()).some((r) => r.name === "Usher"),
+    ).toBe(true);
+  });
+  it("open all drafts: one N-01 per meeting; drafts without a venue or link are skipped", async () => {
+    await as("IL1003");
+    const bare = await s.meetings.create({
+      title: "No venue",
+      meetingTypeId: "mt-regular",
+      startsAt: "2026-11-20T10:30:00.000Z",
+      endsAt: "2026-11-20T12:00:00.000Z",
+    });
+    const before = store
+      .getState()
+      .notifications.filter((n) => n.code === "N-01").length;
+    const r = await s.meetings.openAllDrafts();
+    expect(r).toEqual({ opened: 3, skipped: 1 });
+    expect(
+      store.getState().notifications.filter((n) => n.code === "N-01").length -
+        before,
+    ).toBe(3 * 14);
+    expect(
+      store.getState().meetings.find((m) => m.id === bare.id)?.status,
+    ).toBe("draft");
+  });
+  it("reschedule through update keeps end after start and notifies holders", async () => {
+    await as("IL1003");
+    await expect(
+      s.meetings.update(M2, {
+        startsAt: "2026-10-02T12:00:00.000Z",
+        endsAt: "2026-10-02T11:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+});
+
+describe("status preview", () => {
+  it("lists warnings without writing; reports why a change is not allowed", async () => {
+    await as("IL1003");
+    const before = JSON.stringify(store.getState().meetings);
+    expect(await s.meetings.statusPreview(M2, "finalized")).toEqual({
+      ok: true,
+      warnings: ["OPEN_ROLES"],
+    });
+    clock = Date.parse("2026-10-03T10:00:00+05:30");
+    expect(
+      await s.meetings.statusPreview("mtg-2026-09-25", "completed"),
+    ).toEqual({ ok: true, warnings: ["MISSING_REPORTS"] });
+    expect(await s.meetings.statusPreview(M2, "completed")).toEqual({
+      ok: false,
+      message: "That status change is not allowed.",
+    });
+    expect(JSON.stringify(store.getState().meetings)).toBe(before);
+  });
+});

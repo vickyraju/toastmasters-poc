@@ -494,3 +494,20 @@ export const themeMissing = (d: EventData, m: MeetingRef, tmodId: string) =>
     dueAt: m.startsAt,
     dedupeKey: `T-07:${m.id}`,
   });
+
+/** N-08: a new meeting type, agenda template or role list was added. */
+export const n08TemplateAdded = (
+  d: EventData,
+  at: Date,
+  key: string,
+  title: string,
+) =>
+  active(d).forEach((p) =>
+    notify(d, at, {
+      memberId: p.id,
+      code: "N-08",
+      title,
+      link: "/meetings",
+      dedupeKey: `N-08:${key}`,
+    }),
+  );

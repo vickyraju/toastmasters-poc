@@ -99,11 +99,13 @@ export const startVoteInput = (now: Date) =>
   });
 
 // Speech details (schema.md 3.9). Empty strings mean "not set".
+// nullish so parsing is idempotent: the form parses, then the service validates the same values again.
 const optionalText = (max: number) =>
   z
     .string()
     .trim()
     .max(max)
+    .nullish()
     .transform((v) => v || null);
 
 export const speakerDetailsInput = z.object({
@@ -122,3 +124,142 @@ export const speakerDetailsInput = z.object({
 });
 export type SpeakerDetailsForm = z.input<typeof speakerDetailsInput>;
 export type SpeakerDetailsValues = z.output<typeof speakerDetailsInput>;
+
+// Templates (S-06) and the meeting form (S-05)
+export const recurringInput = z.object({
+  name: trimmed(80).min(1, "Enter a name"),
+  meetingTypeId: z.string().min(1, "Choose a meeting type"),
+  weekday: z.coerce.number().int().min(0).max(6),
+  startTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 16:00"),
+  durationMinutes: z.coerce
+    .number()
+    .int()
+    .min(15, "At least 15 minutes")
+    .max(720, "At most 12 hours"),
+  venue: optionalText(200),
+  meetingLink: z
+    .string()
+    .trim()
+    .nullish()
+    .refine(
+      (v) => !v || /^https?:\/\//i.test(v),
+      "Use a link that starts with https://",
+    )
+    .transform((v) => v || null),
+  weeksAhead: z.coerce
+    .number()
+    .int()
+    .min(1, "At least 1 week")
+    .max(12, "At most 12 weeks"),
+  skipDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  isActive: z.boolean(),
+});
+export type RecurringForm = z.input<typeof recurringInput>;
+export type RecurringValues = z.output<typeof recurringInput>;
+
+export const meetingTypeInput = z.object({
+  name: trimmed(80).min(1, "Enter a name"),
+  defaultDurationMinutes: z.coerce
+    .number()
+    .int()
+    .min(15, "At least 15 minutes")
+    .max(720, "At most 12 hours"),
+  isActive: z.boolean(),
+  roles: z.array(
+    z.object({
+      roleTemplateId: z.string(),
+      count: z.coerce.number().int().min(0).max(20),
+    }),
+  ),
+  agendaItems: z.array(
+    z.object({
+      title: trimmed(120).min(1, "Enter an item name"),
+      durationMinutes: z.coerce
+        .number()
+        .int()
+        .min(1, "At least 1 minute")
+        .max(240),
+      roleTemplateId: z.string().nullable(),
+    }),
+  ),
+});
+export type MeetingTypeForm = z.input<typeof meetingTypeInput>;
+export type MeetingTypeValues = z.output<typeof meetingTypeInput>;
+
+export const roleTemplateInput = z.object({
+  name: trimmed(80).min(1, "Enter a name"),
+  category: z.enum(["main", "support", "report"]),
+  reportKind: z
+    .enum([
+      "timer",
+      "ah_counter",
+      "grammarian",
+      "table_topics",
+      "general_evaluator",
+    ])
+    .nullable(),
+  isSpeaker: z.boolean(),
+  isEvaluator: z.boolean(),
+  defaultCount: z.coerce.number().int().min(0).max(20),
+});
+export type RoleTemplateValues = z.output<typeof roleTemplateInput>;
+
+export const projectInput = z
+  .object({
+    pathway: trimmed(80).min(1, "Enter a pathway or n/a"),
+    level: z.coerce.number().int().min(0).max(5),
+    name: trimmed(120).min(1, "Enter a project name"),
+    minSeconds: z.coerce.number().int().min(0),
+    maxSeconds: z.coerce.number().int().min(1),
+  })
+  .refine((p) => p.maxSeconds > p.minSeconds, {
+    path: ["maxSeconds"],
+    message: "Maximum must be longer than the minimum",
+  });
+export type ProjectValues = z.output<typeof projectInput>;
+
+// S-05 meeting form: date and time are IST wall-clock values; the page turns them into UTC instants.
+export const meetingFormInput = z.object({
+  title: trimmed(120).min(1, "Enter a title"),
+  meetingTypeId: z.string().min(1, "Choose a meeting type"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a date"),
+  startTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Choose a start time"),
+  durationMinutes: z.coerce
+    .number()
+    .int()
+    .min(15, "At least 15 minutes")
+    .max(720, "A meeting cannot span more than 12 hours"),
+  venue: z.string().trim().max(200),
+  meetingLink: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === "" || /^https?:\/\//i.test(v),
+      "Use a link that starts with https://",
+    ),
+  roles: z.array(
+    z.object({
+      roleTemplateId: z.string(),
+      count: z.coerce.number().int().min(0).max(20),
+    }),
+  ),
+  customRoles: z.array(
+    z.object({
+      name: z.string().trim().min(1, "Name the role").max(60),
+      category: z.enum(["main", "support"]),
+      count: z.coerce.number().int().min(1, "At least 1").max(20),
+    }),
+  ),
+});
+export type MeetingFormForm = z.input<typeof meetingFormInput>;
+export type MeetingFormValues = z.output<typeof meetingFormInput>;
+
+/** Message shown when "Open for roles" is clicked with neither a venue nor a link (R-07, flow.md J-07). */
+export const NEEDS_LOCATION =
+  "Add a venue or a meeting link before opening for roles";
+export const hasLocation = (v: { venue: string; meetingLink: string }) =>
+  v.venue.trim() !== "" || v.meetingLink.trim() !== "";

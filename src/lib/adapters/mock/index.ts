@@ -6,10 +6,10 @@ import {
   membersService,
   notificationsService,
   positionsService,
-  templatesService,
   tasksService,
 } from "./core.service";
 import { meetingsService } from "./meetings.service";
+import { templatesService } from "./templates.service";
 import { progressService } from "./progress.service";
 import { rolesService } from "./roles.service";
 import { votesService } from "./votes.service";

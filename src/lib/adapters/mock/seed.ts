@@ -446,8 +446,8 @@ function buildMeetings(
       id,
       title: s.title ?? (isRegular ? "Regular Meeting" : "Speech Contest"),
       meetingTypeId: TYPE_ID[s.type],
-      templateId:
-        s.status === "draft" && s.date !== "2026-10-31" ? "tpl-friday" : null,
+      // Every Friday Regular Meeting came from the template, so generation recognises them.
+      templateId: isRegular ? "tpl-friday" : null,
       startsAt,
       endsAt,
       venue: VENUE,

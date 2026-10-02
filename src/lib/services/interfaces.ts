@@ -3,8 +3,17 @@
 import type { LifecycleWarning } from "../domain/rules/lifecycle";
 import type { VoteView } from "../domain/rules/ballot";
 import type {
+  MeetingTypeValues,
+  ProjectValues,
+  RecurringValues,
+  RoleTemplateValues,
+} from "../domain/schemas";
+import type {
   AuditAction,
   PathwaysProject,
+  MeetingType,
+  MeetingTypeAgendaItem,
+  RecurringTemplate,
   RoleTemplate,
   AuditEntry,
   Completion,
@@ -60,6 +69,11 @@ export interface MeetingDetail extends Meeting {
   typeName: string;
   agendaFile: FileRecord | null;
 }
+export interface CustomRoleInput {
+  name: string;
+  category: "main" | "support";
+  count: number;
+}
 export interface CreateMeetingInput {
   title: string;
   meetingTypeId: string;
@@ -69,6 +83,8 @@ export interface CreateMeetingInput {
   meetingLink?: string | null;
   /** Defaults to the meeting type's role list. */
   roles?: { roleTemplateId: string; count: number }[];
+  /** Roles made up for this meeting; each is also added to the role catalog. */
+  customRoles?: CustomRoleInput[];
 }
 export interface ThemeInput {
   theme: string | null;
@@ -107,10 +123,20 @@ export interface MeetingsService {
   ): Promise<Meeting>;
   cancel(id: string, reason: string): Promise<Meeting>;
   setStatus(id: string, status: MeetingStatus): Promise<StatusResult>;
+  /** Dry run of setStatus: the warnings the change would raise, or the reason it is not allowed. Writes nothing. */
+  statusPreview(
+    id: string,
+    status: MeetingStatus,
+    reason?: string,
+  ): Promise<
+    { ok: true; warnings: LifecycleWarning[] } | { ok: false; message: string }
+  >;
   publishTheme(id: string, input: ThemeInput): Promise<Meeting>;
   uploadAgenda(id: string, file: UploadFile): Promise<FileRecord>;
   /** Template agenda for the meeting's type, timed from its start (meeting_type_agenda_items). */
   agendaOutline(id: string): Promise<AgendaOutlineRow[]>;
+  /** One action, one N-01 per meeting (R-07). */
+  openAllDrafts(): Promise<{ opened: number; skipped: number }>;
 }
 
 export interface AgendaOutlineRow {
@@ -293,10 +319,41 @@ export interface DevService {
   status(): Promise<{ now: string; simulateError: boolean }>;
 }
 
-/** Catalogs used by forms. S-06 editing comes in M7. */
+export interface MeetingTypeView extends MeetingType {
+  roles: { roleTemplateId: string; roleName: string; count: number }[];
+  agendaItems: MeetingTypeAgendaItem[];
+}
+export interface RecurringView extends RecurringTemplate {
+  typeName: string;
+}
+
+/** Templates, meeting types, role catalog, project timings and recurring generation (S-06, R-08). */
 export interface TemplatesService {
   roleTemplates(): Promise<RoleTemplate[]>;
   projects(): Promise<PathwaysProject[]>;
+  meetingTypes(): Promise<MeetingTypeView[]>;
+  recurring(): Promise<RecurringView[]>;
+  /** Creating or changing a type, role or recurring template notifies all members (N-08) when it is new. */
+  saveMeetingType(
+    id: string | null,
+    input: MeetingTypeValues,
+  ): Promise<MeetingType>;
+  saveRoleTemplate(
+    id: string | null,
+    input: RoleTemplateValues,
+  ): Promise<RoleTemplate>;
+  saveProject(
+    id: string | null,
+    input: ProjectValues,
+  ): Promise<PathwaysProject>;
+  /** `applyToDrafts` also updates meetings generated from it that are still Draft and have no holders (R-08). */
+  saveRecurring(
+    id: string | null,
+    input: RecurringValues,
+    applyToDrafts?: boolean,
+  ): Promise<RecurringTemplate>;
+  /** Creates the Draft meetings every active template is missing; safe to repeat (R-08). */
+  generateRecurring(): Promise<{ created: number }>;
 }
 
 export interface PositionsSummary {
