@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, MoreHorizontal, Plus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/shared/Avatar";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -422,25 +428,34 @@ function RoleRow({
               Edit speech details
             </Button>
           ) : null}
-          {ctx.isOfficer && row.holder ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className={danger}
-              onClick={() => openDialog({ kind: "clear", row })}
-            >
-              Remove holder
-            </Button>
-          ) : null}
           {ctx.isOfficer ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className={danger}
-              onClick={() => openDialog({ kind: "remove", row })}
-            >
-              Delete role
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={`More actions for ${row.slot.label}`}
+                className="inline-flex size-9 items-center justify-center rounded-lg border border-border-input text-muted-foreground transition-colors duration-150 hover:bg-primary-soft hover:text-foreground max-lg:size-11"
+              >
+                <MoreHorizontal className="size-4" aria-hidden="true" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="shadow-[var(--elevation)]"
+              >
+                {row.holder ? (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => openDialog({ kind: "clear", row })}
+                  >
+                    Remove holder
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => openDialog({ kind: "remove", row })}
+                >
+                  Delete role
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null}
         </div>
       ) : null}
