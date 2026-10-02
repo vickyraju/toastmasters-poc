@@ -39,7 +39,7 @@ export function NotificationsPage() {
               aria-pressed={filter === f}
               onClick={() => setFilter(f)}
               className={cn(
-                "min-h-9 rounded-md px-3 text-sm font-medium max-lg:min-h-11",
+                "min-h-9 rounded-md px-3 text-sm font-medium max-lg:min-h-11 max-lg:min-w-11",
                 filter === f
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground hover:bg-primary-soft",

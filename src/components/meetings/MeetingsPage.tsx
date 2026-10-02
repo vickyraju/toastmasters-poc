@@ -78,7 +78,7 @@ export function MeetingsPage() {
               aria-pressed={view === v}
               onClick={() => setView(v)}
               className={cn(
-                "min-h-9 rounded-md px-3 text-sm font-medium max-lg:min-h-11",
+                "min-h-9 rounded-md px-3 text-sm font-medium max-lg:min-h-11 max-lg:min-w-11",
                 view === v
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground hover:bg-primary-soft",

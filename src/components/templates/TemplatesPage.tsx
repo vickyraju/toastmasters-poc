@@ -72,8 +72,8 @@ export function TemplatesPage() {
     ) : null;
 
   return (
-    <div className="space-y-4">
-      <Tabs defaultValue="recurring">
+    <div className="min-w-0 space-y-4">
+      <Tabs defaultValue="recurring" className="min-w-0">
         <TabsList className="max-w-full justify-start overflow-x-auto group-data-horizontal/tabs:h-auto">
           {[
             ["recurring", "Recurring templates"],
@@ -91,7 +91,7 @@ export function TemplatesPage() {
           ))}
         </TabsList>
 
-        <TabsContent value="recurring" className="space-y-3 pt-4">
+        <TabsContent value="recurring" className="min-w-0 space-y-3 pt-4">
           <div className="flex flex-wrap justify-end gap-2">
             {canEdit ? (
               <Button
@@ -147,7 +147,7 @@ export function TemplatesPage() {
           </QueryBlock>
         </TabsContent>
 
-        <TabsContent value="types" className="space-y-3 pt-4">
+        <TabsContent value="types" className="min-w-0 space-y-3 pt-4">
           <div className="flex justify-end">
             {add({ kind: "type", row: null }, "Add meeting type")}
           </div>
@@ -192,7 +192,7 @@ export function TemplatesPage() {
           </QueryBlock>
         </TabsContent>
 
-        <TabsContent value="roles" className="space-y-3 pt-4">
+        <TabsContent value="roles" className="min-w-0 space-y-3 pt-4">
           <div className="flex justify-end">
             {add({ kind: "role", row: null }, "Add role")}
           </div>
@@ -233,7 +233,7 @@ export function TemplatesPage() {
           </QueryBlock>
         </TabsContent>
 
-        <TabsContent value="projects" className="space-y-3 pt-4">
+        <TabsContent value="projects" className="min-w-0 space-y-3 pt-4">
           <p
             role="note"
             className="flex items-center gap-2 rounded-md bg-warning-bg px-3 py-2 text-sm text-warning"
@@ -310,8 +310,9 @@ function Table({
   head: string[];
   children: React.ReactNode;
 }) {
+  // contain: paint keeps the table's scrollable width out of the page width on phones.
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card">
+    <div className="overflow-x-auto rounded-lg border border-border bg-card [contain:paint]">
       <table className="w-full text-left text-sm">
         <thead className="bg-background text-muted-foreground">
           <tr>
