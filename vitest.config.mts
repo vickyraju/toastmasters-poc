@@ -6,6 +6,8 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
     environment: "jsdom",
+    // Component tests sign in, wait on the mock service delay and walk several steps.
+    testTimeout: 15_000,
     setupFiles: ["./src/test/setup.ts"],
     env: { TZ: "UTC" },
   },

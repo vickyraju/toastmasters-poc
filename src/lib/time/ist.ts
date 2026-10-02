@@ -35,3 +35,9 @@ export function formatMeetingRange(start: DateInput, end: DateInput): string {
 export function formatSeconds(total: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
+
+/** "5:20" -> 320; "" or junk -> null. Seconds must be 0 to 59. */
+export function parseMmSs(text: string): number | null {
+  const m = text.trim().match(/^(\d{1,3}):([0-5]\d)$/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}

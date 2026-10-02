@@ -11,6 +11,7 @@ import {
 import { meetingsService } from "./meetings.service";
 import { templatesService } from "./templates.service";
 import { progressService } from "./progress.service";
+import { reportsService } from "./reports.service";
 import { rolesService } from "./roles.service";
 import { votesService } from "./votes.service";
 import {
@@ -46,6 +47,7 @@ export function createMockServices(
     members: membersService(ctx),
     positions: positionsService(ctx),
     templates: templatesService(ctx),
+    reports: reportsService(ctx),
     audit: auditService(ctx),
     dev: devService(ctx),
   };

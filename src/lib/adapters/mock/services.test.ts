@@ -1008,3 +1008,215 @@ describe("status preview", () => {
     expect(JSON.stringify(store.getState().meetings)).toBe(before);
   });
 });
+
+describe("M8 reports (J-08, R-04)", () => {
+  const SEP25 = "mtg-2026-09-25";
+  const sp = (n: number) => `${SEP25}:speaker-${n}`;
+
+  it("25 Sep as Karthik (officer): five report roles with the seeded statuses; 3 outstanding", async () => {
+    await as("IL1003");
+    const v = await s.reports.forMeeting(SEP25);
+    expect(v.phase).toBe("open");
+    expect(v.items.map((i) => [i.roleName, i.status])).toEqual([
+      ["General Evaluator", "not_started"],
+      ["Table Topics Master", "submitted"],
+      ["Timer", "not_started"],
+      ["Ah-Counter", "submitted"],
+      ["Grammarian", "draft"],
+    ]);
+    expect(v.outstanding).toBe(3);
+    expect(v.speakers.map((x) => [x.name, x.minSeconds, x.maxSeconds])).toEqual(
+      [
+        ["Vikram Rao", 300, 420],
+        ["Meera Joshi", 300, 420],
+        ["Mohammed Faisal", 300, 420],
+      ],
+    );
+  });
+
+  it("a member sees only their own report role; 2 Oct has no forms yet", async () => {
+    await as("IL1013"); // Aditya: Timer on 25 Sep
+    const v = await s.reports.forMeeting(SEP25);
+    expect(v.items.map((i) => [i.roleName, i.status, i.mine])).toEqual([
+      ["Timer", "not_started", true],
+    ]);
+    expect(v.outstanding).toBeNull();
+    const before = await s.reports.forMeeting(M2);
+    expect(before.phase).toBe("before_end");
+    expect(before.items).toEqual([]);
+    await s.auth.signOut();
+    await as("IL1007"); // the Timer on 2 Oct: the right person, too early
+    expect(await code(s.reports.save(slot("timer"), { rows: [] }))).toBe(
+      "INVALID_STATE",
+    );
+  });
+
+  it("timer: the server computes cards from the slot limits and ignores the client's; submit clears T-01", async () => {
+    await as("IL1013");
+    expect((await s.tasks.listMine()).some((t) => t.code === "T-01")).toBe(
+      true,
+    );
+    const r = await s.reports.submit(`${SEP25}:timer`, {
+      rows: [
+        { speakerSlotId: sp(1), seconds: 320, card: "red" }, // wrong on purpose
+        { speakerSlotId: sp(2), seconds: 370 },
+        { speakerSlotId: sp(3), seconds: 465 },
+      ],
+    } as never);
+    expect(r.status).toBe("submitted");
+    expect(
+      (r.payload as { rows: { card: string }[] }).rows.map((x) => x.card),
+    ).toEqual(["green", "yellow", "disqualified"]);
+    expect((await s.tasks.listMine()).some((t) => t.code === "T-01")).toBe(
+      false,
+    );
+  });
+
+  it("draft keeps the task; the author can edit after submitting until Completed, then it locks (CLOSED)", async () => {
+    await as("IL1006"); // Sneha: Grammarian, draft
+    await s.reports.save(`${SEP25}:grammarian`, {
+      wordOfDayUsage: [],
+      goodLanguage: "Nice",
+      improvements: "",
+    });
+    expect((await s.tasks.listMine()).some((t) => t.code === "T-01")).toBe(
+      true,
+    );
+    await s.reports.submit(`${SEP25}:grammarian`, {
+      wordOfDayUsage: [{ memberId: "mem-1007", count: 1 }],
+      goodLanguage: "Nice",
+      improvements: "Fewer fillers",
+    });
+    expect((await s.tasks.listMine()).some((t) => t.code === "T-01")).toBe(
+      false,
+    );
+    await s.reports.submit(`${SEP25}:grammarian`, {
+      wordOfDayUsage: [],
+      goodLanguage: "Edited",
+      improvements: "x",
+    });
+    await s.auth.signOut();
+    await as("IL1003");
+    clock = Date.parse("2026-10-03T10:00:00+05:30");
+    await s.meetings.setStatus(SEP25, "completed");
+    await s.auth.signOut();
+    await as("IL1006");
+    expect(
+      await code(
+        s.reports.save(`${SEP25}:grammarian`, {
+          wordOfDayUsage: [],
+          goodLanguage: "late",
+          improvements: "",
+        }),
+      ),
+    ).toBe("CLOSED");
+  });
+
+  it("only the holder reports; validation errors name the problem", async () => {
+    await as("IL1009");
+    expect(await code(s.reports.save(`${SEP25}:timer`, { rows: [] }))).toBe(
+      "FORBIDDEN",
+    );
+    await s.auth.signOut();
+    await as("IL1013");
+    await expect(
+      s.reports.save(`${SEP25}:timer`, {
+        rows: [{ speakerSlotId: sp(1), seconds: -5 }],
+      } as never),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      s.reports.save(`${SEP25}:ah-counter`, { rows: [] }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await s.auth.signOut();
+    await as("IL1011");
+    await expect(
+      s.reports.submit(`${SEP25}:ttm`, { summary: "  " }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      message: "Write a short summary before submitting.",
+    });
+    expect(await code(s.reports.save(`${SEP25}:ttm`, { summary: "" }))).toBe(
+      "ok",
+    ); // a draft may be empty
+  });
+
+  it("18 Sep Completed: every member sees every report; the removed member's name shows on the Roles board", async () => {
+    await as("IL1009");
+    const v = await s.reports.forMeeting("mtg-2026-09-18");
+    expect(v.phase).toBe("completed");
+    expect(v.items.map((i) => i.status)).toEqual([
+      "submitted",
+      "submitted",
+      "submitted",
+      "submitted",
+      "submitted",
+    ]);
+    const timer = v.items.find((i) => i.kind === "timer")!.payload as {
+      rows: { card: string; seconds: number }[];
+    };
+    expect(timer.rows.map((r) => [r.seconds, r.card])).toEqual([
+      [320, "green"],
+      [370, "yellow"],
+      [425, "red"],
+      [465, "disqualified"],
+    ]);
+    const roles = await s.roles.listForMeeting("mtg-2026-09-18");
+    expect(
+      roles.find((r) => r.slot.label === "Evaluator 4")?.holder?.name,
+    ).toBe("Old Member");
+  });
+
+  it("report tasks come back only for unsubmitted roles after the meeting ends (T-01 and N-06 for 2 Oct)", async () => {
+    await as("IL1007");
+    clock = Date.parse("2026-10-02T18:00:00+05:30");
+    await s.dev.tick();
+    const t = (await s.tasks.listMine()).filter(
+      (x) => x.code === "T-01" && x.link.includes(M2),
+    );
+    expect(t).toHaveLength(1);
+    const v = await s.reports.forMeeting(M2);
+    expect(v.phase).toBe("open");
+    expect(v.items.filter((i) => i.mine).map((i) => i.roleName)).toEqual([
+      "Timer",
+    ]);
+    expect(v.items).toHaveLength(5); // an officer sees every report role
+  });
+});
+
+describe("M8 theme (J-06)", () => {
+  it("TMOD publishes: all active members get N-05 and T-07 clears; ExComm may too; others may not", async () => {
+    await as("IL1006"); // Sneha is TMOD of 9 Oct
+    clock = Date.parse("2026-10-06T16:00:00+05:30");
+    expect((await s.tasks.listMine()).some((t) => t.code === "T-07")).toBe(
+      true,
+    );
+    await s.meetings.publishTheme("mtg-2026-10-09", {
+      theme: "Courage",
+      welcomeNote: "Hello",
+      wordOfTheDay: "Brave",
+      wordMeaning: "ready to face danger",
+    });
+    expect((await s.tasks.listMine()).some((t) => t.code === "T-07")).toBe(
+      false,
+    );
+    expect(
+      store
+        .getState()
+        .notifications.filter(
+          (n) => n.code === "N-05" && /Courage/.test(n.title),
+        ),
+    ).toHaveLength(14);
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(
+      await code(
+        s.meetings.publishTheme("mtg-2026-10-09", {
+          theme: "x",
+          welcomeNote: null,
+          wordOfTheDay: null,
+          wordMeaning: null,
+        }),
+      ),
+    ).toBe("FORBIDDEN");
+  });
+});

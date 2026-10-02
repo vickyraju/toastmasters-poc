@@ -12,13 +12,13 @@ import { RoleBoard } from "@/components/roles/RoleBoard";
 import { useMeeting, useMeetingRoles } from "@/hooks/useMeeting";
 import { useMyBoardActions } from "@/hooks/useRoles";
 import { useCan, useCurrentUser } from "@/hooks/useSession";
-import { useNow } from "@/hooks/useHome";
 import { AppError, type MeetingDetail as Detail } from "@/lib/services";
 import type { MeetingStatus } from "@/lib/domain/types";
 import { formatMeetingRange } from "@/lib/time/ist";
 import { cn } from "@/lib/utils";
 import { AgendaTab } from "./AgendaTab";
 import { MeetingActions } from "./MeetingActions";
+import { ReportsTab } from "@/components/reports/ReportsTab";
 import { OverviewTab } from "./OverviewTab";
 import { safeHttpUrl } from "./safeUrl";
 
@@ -152,7 +152,7 @@ function Loaded({ meeting: m }: { meeting: Detail }) {
           <RolesTab meeting={m} />
         </TabsContent>
         <TabsContent value="reports" className="pt-4">
-          <ReportsTab meeting={m} />
+          <ReportsTab meetingId={m.id} slot={params.get("slot")} />
         </TabsContent>
       </Tabs>
     </div>
@@ -238,23 +238,4 @@ function RolesTab({ meeting: m }: { meeting: Detail }) {
       }
     </QueryBlock>
   );
-}
-
-/** Report forms and the consolidated report come in M8; until then only the "not ended" state is real. */
-function ReportsTab({ meeting }: { meeting: Detail }) {
-  const nowQ = useNow();
-  if (!nowQ.data) return <Skeleton className="h-10 w-full" />;
-  if (meeting.status === "cancelled")
-    return (
-      <p className="text-muted-foreground">
-        This meeting was cancelled, so there are no reports.
-      </p>
-    );
-  if (nowQ.data < meeting.endsAt)
-    return (
-      <p className="text-muted-foreground">
-        Reports open after the meeting ends.
-      </p>
-    );
-  return <p className="text-muted-foreground">This screen is not built yet.</p>;
 }

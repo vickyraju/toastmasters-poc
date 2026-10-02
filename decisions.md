@@ -94,3 +94,14 @@ Accepted defaults and rulings, newest last. Each: what was decided, why, cost if
 - **A form and its service parse the same values twice**, so the schemas are idempotent (`optionalText` and the link field accept `null`). Found when the template form saved a parsed `null` venue and the service rejected it.
 - **"Open for roles" on the form saves and opens in one step**; the intent is held in a ref because the click and the submit happen in one event, before React re-renders. Found by a test: the button used to save a draft only.
 - **Dev panel gained "Generate recurring meetings"** (plan: "callable from the dev panel"); the same button is on S-06 as "Generate meetings now" for ExComm.
+
+## M8 (2026-10-02)
+
+- **Timer cards are always computed by the service** (R-04) from the slot's limits and `timer_grace_seconds`; whatever card the client sends is ignored. A speaker with no limits gets "No card" and the time is kept, with "Set project timings" guidance.
+- **Who sees which report (schema.md section 6):** holders and ExComm/President see a meeting's reports from its end; every member sees the consolidated report once Completed. A member with no report role before Completed sees a pointer to the consolidated report. Report roles are the roles whose catalog entry has a report kind (Timer, Ah-Counter, Grammarian, Table Topics Master, General Evaluator).
+- **Editing:** a draft may be empty; submit needs content (summary text for the two summary roles). The author can resubmit until the meeting is Completed (A7), after which every save returns `CLOSED` and the forms are read-only.
+- **Ah-Counter and Grammarian rows are the meeting's speakers** (the docs say "per speaker"). The Ah-Counter breakdown is typed as `um 4, so 2`; the consolidated report sums breakdowns across speakers and shows any remainder as "other" (mock-data.md 8: um 14, so 9, like 5, other 3 = 31).
+- **Report tasks (T-01) already come from the clock job**; submitting closes them. Reports remain submittable only after `ends_at` (J-08 step 1).
+- **Theme editor** sets theme, welcome note, word of the day and meaning for TMOD (own meeting, not once Completed or Cancelled) and ExComm. Length caps are mine (120, 1000, 60, 200); the docs give none. Publishing sends N-05 to all active members and clears T-07 once both theme and word are set.
+- **Seeded reports** from mock-data.md 5.2 and 8 are in the seed; the 18 Sep timer card list is green, yellow, red, DQ computed by the same rule.
+- **Test timeout raised to 15 s** project-wide: component tests sign in, wait on the 150-400 ms mock delay and walk several steps; 5 s was flaky for the longest one.

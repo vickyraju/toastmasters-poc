@@ -15,6 +15,7 @@ export const qk = {
   projects: ["projects"] as const,
   members: ["members"] as const,
   meetingTypes: ["meeting-types"] as const,
+  reports: (id: string) => ["reports", id] as const,
   recurring: ["recurring"] as const,
   openForMe: ["open-for-me"] as const,
   pendingWithdrawals: ["pending-withdrawals"] as const,

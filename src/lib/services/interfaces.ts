@@ -11,6 +11,8 @@ import type {
 import type {
   AuditAction,
   PathwaysProject,
+  ReportKind,
+  ReportPayload,
   MeetingType,
   MeetingTypeAgendaItem,
   RecurringTemplate,
@@ -223,6 +225,52 @@ export interface RolesService {
   ): Promise<SpeakerDetails>;
 }
 
+export type ReportStatus = "not_started" | "draft" | "submitted";
+export interface ReportItem {
+  slotId: string;
+  roleName: string;
+  kind: ReportKind;
+  holder: { id: string; name: string } | null;
+  status: ReportStatus;
+  submittedAt: string | null;
+  payload: ReportPayload | null;
+  /** The signed-in member holds this report role. */
+  mine: boolean;
+}
+/** One speaker slot: the Timer and Ah-Counter forms have a row for each. */
+export interface SpeakerLine {
+  slotId: string;
+  label: string;
+  memberId: string | null;
+  name: string | null;
+  title: string | null;
+  minSeconds: number | null;
+  maxSeconds: number | null;
+}
+export interface MeetingReportsView {
+  phase: "before_end" | "open" | "completed" | "cancelled";
+  /** Officers see every report role; members only their own, until Completed (schema.md section 6). */
+  items: ReportItem[];
+  speakers: SpeakerLine[];
+  graceSeconds: number;
+  /** Report roles without a submitted report; officers only. */
+  outstanding: number | null;
+  wordOfTheDay: string | null;
+  /** Names for every member id inside the payloads, removed members included (FR-03). */
+  names: Record<string, string>;
+}
+
+/** Report forms (J-08). Timer rows carry only `speakerSlotId` and `seconds`; the card is computed here (R-04). */
+export type ReportInput =
+  ReportPayload | { rows: { speakerSlotId: string; seconds: number }[] };
+export interface ReportsService {
+  forMeeting(meetingId: string): Promise<MeetingReportsView>;
+  /** Draft: may be incomplete. */
+  save(slotId: string, payload: ReportInput): Promise<ReportItem>;
+  /** Submit: validated; clears T-01. The author may resubmit until the meeting is Completed (A7). */
+  submit(slotId: string, payload: ReportInput): Promise<ReportItem>;
+}
+
 export interface TasksService {
   listMine(): Promise<Task[]>;
 }
@@ -381,6 +429,7 @@ export interface Services {
   members: MembersService;
   positions: PositionsService;
   templates: TemplatesService;
+  reports: ReportsService;
   audit: AuditService;
   dev: DevService;
 }

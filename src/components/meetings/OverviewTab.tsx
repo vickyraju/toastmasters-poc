@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/Card";
 import { QueryBlock } from "@/components/shared/QueryBlock";
 import { useMeetingRoles } from "@/hooks/useMeeting";
-import { useCurrentUser } from "@/hooks/useSession";
+import { useCan, useCurrentUser } from "@/hooks/useSession";
+import { ThemeEditor } from "./ThemeEditor";
 import type { MeetingDetail } from "@/lib/services";
 import { safeHttpUrl } from "./safeUrl";
 
@@ -12,10 +15,27 @@ export function OverviewTab({ meeting: m }: { meeting: MeetingDetail }) {
   const roles = useMeetingRoles(m.id);
   const me = useCurrentUser().data;
   const link = safeHttpUrl(m.meetingLink);
+  const [editing, setEditing] = useState(false);
+  const tmod =
+    roles.data?.find((r) => r.roleCode === "tmod")?.holder?.id ?? null;
+  const canEdit = useCan("meeting.theme.edit", {
+    meetingStatus: m.status,
+    tmodHolderId: tmod,
+  });
 
   return (
     <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
-      <Card title="Theme" className="lg:col-span-2">
+      <Card
+        title="Theme"
+        className="lg:col-span-2"
+        action={
+          canEdit ? (
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              {m.themePublishedAt ? "Edit theme" : "Set theme"}
+            </Button>
+          ) : null
+        }
+      >
         {m.theme || m.wordOfTheDay || m.welcomeNote ? (
           <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[max-content_1fr]">
             <dt className="text-muted-foreground">Theme</dt>
@@ -108,6 +128,9 @@ export function OverviewTab({ meeting: m }: { meeting: MeetingDetail }) {
           </dl>
         </Card>
       </div>
+      {editing ? (
+        <ThemeEditor meeting={m} onClose={() => setEditing(false)} />
+      ) : null}
     </div>
   );
 }

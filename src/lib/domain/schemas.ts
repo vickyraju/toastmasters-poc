@@ -263,3 +263,25 @@ export const NEEDS_LOCATION =
   "Add a venue or a meeting link before opening for roles";
 export const hasLocation = (v: { venue: string; meetingLink: string }) =>
   v.venue.trim() !== "" || v.meetingLink.trim() !== "";
+
+// Report input (J-08). Drafts may be empty; submit needs real content.
+export const timerInput = z.object({
+  rows: z.array(
+    z.object({
+      speakerSlotId: z.string(),
+      seconds: z.number().int().min(0).max(86_399),
+    }),
+  ),
+});
+export const REPORT_SUMMARY_REQUIRED =
+  "Write a short summary before submitting.";
+
+// Theme editor (J-06). Lengths are not in the docs; these are sensible caps.
+export const themeInput = z.object({
+  theme: optionalText(120),
+  welcomeNote: optionalText(1000),
+  wordOfTheDay: optionalText(60),
+  wordMeaning: optionalText(200),
+});
+export type ThemeForm = z.input<typeof themeInput>;
+export type ThemeValues = z.output<typeof themeInput>;
