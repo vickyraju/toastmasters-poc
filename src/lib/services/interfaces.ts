@@ -2,6 +2,7 @@
 // adapter implements them now and an API adapter will later. Every method returns a Promise.
 import type { LifecycleWarning } from "../domain/rules/lifecycle";
 import type { VoteView } from "../domain/rules/ballot";
+import type { MemberAddValues, MemberEditValues } from "../domain/schemas";
 import type {
   MeetingTypeValues,
   ProjectValues,
@@ -341,9 +342,49 @@ export interface VotesService {
   close(voteId: string): Promise<Vote>;
 }
 
+export interface MemberRow extends Member {
+  position: Position | null;
+}
+export interface MemberRoleLine {
+  meetingId: string;
+  meetingTitle: string;
+  startsAt: string;
+  label: string;
+  meetingStatus: MeetingStatus;
+}
+export interface MemberProfile {
+  member: MemberRow;
+  roles: MemberRoleLine[];
+  completions: Completion[];
+  projectsCompleted: number;
+}
+/** What removing or deactivating a member would do, shown before they confirm (R-16). */
+export interface RemovalImpact {
+  roles: {
+    slotId: string;
+    meetingId: string;
+    meetingTitle: string;
+    startsAt: string;
+    label: string;
+  }[];
+  position: Position | null;
+  /** Why it is not allowed, or null. */
+  blocked: string | null;
+}
+
 export interface MembersService {
-  list(): Promise<Member[]>;
+  /** Every member including removed ones; the screen filters by status. */
+  list(): Promise<MemberRow[]>;
   get(id: string): Promise<Member>;
+  profile(id: string): Promise<MemberProfile>;
+  add(input: MemberAddValues): Promise<Member>;
+  /** ExComm edits anyone; a member edits their own name, email and pathway. The id and level never change here. */
+  update(id: string, patch: Partial<MemberEditValues>): Promise<Member>;
+  impact(id: string): Promise<RemovalImpact>;
+  /** Deactivate or reactivate. Deactivating releases future roles and vacates any position. */
+  setActive(id: string, active: boolean): Promise<{ released: number }>;
+  /** Final: history stays, sign-in stops, future roles are released. */
+  remove(id: string): Promise<{ released: number }>;
 }
 
 export interface AuditFilters {
@@ -419,6 +460,11 @@ export interface PositionsSummary {
 
 export interface PositionsService {
   list(): Promise<PositionsSummary>;
+  /** President only. `null` makes the seat vacant. The President seat moves only through `transfer` (R-12). */
+  assign(code: Position, memberId: string | null): Promise<void>;
+  setNextPresident(memberId: string | null): Promise<void>;
+  /** Hands the presidency to the named next President; the caller becomes a plain Member. */
+  transfer(): Promise<void>;
 }
 
 export interface Services {

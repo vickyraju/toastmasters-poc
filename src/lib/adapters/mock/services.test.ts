@@ -1329,3 +1329,343 @@ describe("M9 progress", () => {
     ]);
   });
 });
+
+describe("M10 members (R-16)", () => {
+  const add = (o = {}) => ({
+    employeeId: " il2001 ",
+    name: " New Person ",
+    email: "New.Person@Example.com",
+    toastmastersId: "",
+    pathway: "",
+    currentLevel: 1,
+    ...o,
+  });
+
+  it("ExComm adds a member: uppercase id, lowercase email, trimmed; duplicates are refused", async () => {
+    await as("IL1003");
+    const m = await s.members.add(add());
+    expect(m).toMatchObject({
+      employeeId: "IL2001",
+      name: "New Person",
+      email: "new.person@example.com",
+      status: "active",
+      accountType: "member",
+      currentLevel: 1,
+      toastmastersId: null,
+      pathway: null,
+    });
+    expect(store.getState().audit.at(-1)?.action).toBe("member.add");
+    await expect(s.members.add(add())).rejects.toMatchObject({
+      code: "VALIDATION",
+      extra: { fields: { employeeId: expect.any(String) } },
+    });
+    await expect(
+      s.members.add(
+        add({ employeeId: "IL2002", email: "NEW.person@example.com" }),
+      ),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      extra: { fields: { email: expect.any(String) } },
+    });
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(
+      await code(
+        s.members.add(add({ employeeId: "IL2003", email: "x@example.com" })),
+      ),
+    ).toBe("FORBIDDEN");
+  });
+  it("a new member can sign in; list includes removed members with their position", async () => {
+    await as("IL1003");
+    await s.members.add(add());
+    await s.auth.signOut();
+    expect((await s.auth.signIn("IL2001")).name).toBe("New Person");
+    await s.auth.signOut();
+    await as("IL1003");
+    const list = await s.members.list();
+    expect(list).toHaveLength(17);
+    expect(list.find((x) => x.employeeId === "IL1099")?.status).toBe("removed");
+    expect(list.find((x) => x.employeeId === "IL1002")?.position).toBe("vpe");
+  });
+  it("edit: ExComm edits anyone but not the employee id or level; members edit only themselves", async () => {
+    await as("IL1003");
+    const u = await s.members.update("mem-1009", {
+      name: "Mo Faisal",
+      email: "MO@example.com",
+      toastmastersId: "TM-77",
+      pathway: "Visionary Communication",
+    });
+    expect(u).toMatchObject({
+      name: "Mo Faisal",
+      email: "mo@example.com",
+      toastmastersId: "TM-77",
+      employeeId: "IL1009",
+      currentLevel: 2,
+    });
+    expect(store.getState().audit.at(-1)).toMatchObject({
+      action: "member.update",
+      before: expect.objectContaining({ name: "Mohammed Faisal" }),
+    });
+    await expect(
+      s.members.update("mem-1009", { email: "mem1010@example.com" }),
+    ).resolves.toBeDefined();
+    await expect(
+      s.members.update("mem-1009", { email: "lakshmi.narayanan@example.com" }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(
+      (await s.members.update("mem-1009", { pathway: "Dynamic Leadership" }))
+        .pathway,
+    ).toBe("Dynamic Leadership");
+    expect(
+      await code(s.members.update("mem-1009", { toastmastersId: "TM-1" })),
+    ).toBe("FORBIDDEN");
+    expect(await code(s.members.update("mem-1010", { name: "X" }))).toBe(
+      "FORBIDDEN",
+    );
+  });
+  it("profile: roles history, progress; self or ExComm only", async () => {
+    await as("IL1011"); // Suresh
+    const p = await s.members.profile("mem-1011");
+    expect(p.member).toMatchObject({
+      name: "Suresh Babu",
+      currentLevel: 4,
+      position: null,
+    });
+    expect(p.roles.map((r) => [r.meetingId, r.label])).toEqual([
+      ["mtg-2026-09-18", "General Evaluator"],
+      ["mtg-2026-09-25", "Table Topics Master"],
+      ["mtg-2026-10-02", "General Evaluator"],
+    ]);
+    expect(p.completions.map((c) => [c.level, c.status])).toEqual([
+      [3, "verified"],
+    ]);
+    expect(await code(s.members.profile("mem-1010"))).toBe("FORBIDDEN");
+    await s.auth.signOut();
+    await as("IL1003");
+    expect(
+      (await s.members.profile("mem-1010")).roles.map((r) => r.meetingId),
+    ).toEqual(["mtg-2026-09-18", "mtg-2026-10-02"]);
+  });
+
+  it("removal impact lists future roles and the position; remove releases roles, vacates the position, ends their swap", async () => {
+    await as("IL1003");
+    const impact = await s.members.impact("mem-1007"); // Vikram: SAA, Timer on 2 Oct, pending swap
+    expect(impact).toMatchObject({ blocked: null, position: "saa" });
+    expect(impact.roles.map((r) => [r.meetingId, r.label])).toEqual([
+      ["mtg-2026-10-02", "Timer"],
+    ]);
+    const r = await s.members.remove("mem-1007");
+    expect(r).toEqual({ released: 1 });
+    const d = store.getState();
+    expect(d.members.find((m) => m.id === "mem-1007")).toMatchObject({
+      status: "removed",
+      accountType: "member",
+    });
+    expect(d.meetingRoles.find((x) => x.id === slot("timer"))).toMatchObject({
+      memberId: null,
+      status: "open",
+    });
+    expect(d.positions.find((p) => p.code === "saa")?.memberId).toBeNull();
+    expect(d.swaps.find((x) => x.id === "swp-001")?.status).toBe("cancelled");
+    expect(d.tasks.some((t) => t.code === "T-04" && !t.doneAt)).toBe(false);
+    expect(
+      d.notifications.filter(
+        (n) =>
+          n.memberId === "mem-1007" && n.createdAt > "2026-10-01T12:30:00.000Z",
+      ),
+    ).toEqual([]); // no notification to the member
+    expect(
+      d.audit.filter(
+        (a) => a.action === "member.remove" || a.action === "position.remove",
+      ),
+    ).toHaveLength(2);
+    // history stays: their past role is still there, and they cannot sign in
+    expect(
+      d.meetingRoles.find((x) => x.id === "mtg-2026-09-25:speaker-1")?.memberId,
+    ).toBe("mem-1007");
+    await s.auth.signOut();
+    await expect(s.auth.signIn("IL1007")).rejects.toMatchObject({
+      message: "We could not find that employee ID.",
+    });
+  });
+  it("cannot remove yourself or the President; completed and past meetings keep their holders", async () => {
+    await as("IL1003");
+    expect(await s.members.impact("mem-1003")).toMatchObject({
+      blocked: "You cannot remove yourself.",
+    });
+    expect(await code(s.members.remove("mem-1003"))).toBe("INVALID_STATE");
+    expect(await s.members.impact("mem-1001")).toMatchObject({
+      blocked: "Transfer the presidency first.",
+    });
+    expect(await code(s.members.remove("mem-1001"))).toBe("INVALID_STATE");
+    expect((await s.members.impact("mem-1011")).roles).toHaveLength(1); // only the 2 Oct slot, not 18 or 25 Sep
+  });
+  it("deactivate blocks sign-in and releases roles the same way; reactivate restores sign-in", async () => {
+    await as("IL1003");
+    expect(await s.members.setActive("mem-1013", false)).toEqual({
+      released: 1,
+    });
+    expect(
+      store.getState().meetingRoles.find((x) => x.id === slot("ah-counter"))
+        ?.memberId,
+    ).toBeNull();
+    await s.auth.signOut();
+    await expect(s.auth.signIn("IL1013")).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    await as("IL1003");
+    await s.members.setActive("mem-1013", true);
+    await s.auth.signOut();
+    expect((await s.auth.signIn("IL1013")).status).toBe("active");
+    await s.auth.signOut();
+    await as("IL1003");
+    expect(await code(s.members.setActive("mem-1099", true))).toBe(
+      "INVALID_STATE",
+    ); // removed is final
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(await code(s.members.remove("mem-1010"))).toBe("FORBIDDEN");
+  });
+});
+
+describe("M10 positions (R-12)", () => {
+  const holder = (c: string) =>
+    store.getState().positions.find((p) => p.code === c)?.memberId;
+  const presidents = () =>
+    store
+      .getState()
+      .members.filter(
+        (m) => m.accountType === "president" && m.status === "active",
+      );
+
+  it("only the President assigns; the previous holder becomes a plain Member; both get N-11; audit", async () => {
+    await as("IL1002"); // VPE cannot
+    expect(await code(s.positions.assign("vpm", "mem-1009"))).toBe("FORBIDDEN");
+    await s.auth.signOut();
+    await as("IL1001");
+    await s.positions.assign("vpm", "mem-1009"); // replaces Karthik with Mohammed
+    expect(holder("vpm")).toBe("mem-1009");
+    const d = store.getState();
+    expect(d.members.find((m) => m.id === "mem-1009")?.accountType).toBe(
+      "excomm",
+    );
+    expect(d.members.find((m) => m.id === "mem-1003")?.accountType).toBe(
+      "member",
+    );
+    expect(
+      d.notifications
+        .filter((n) => n.code === "N-11")
+        .map((n) => n.memberId)
+        .sort(),
+    ).toEqual(["mem-1003", "mem-1009"]);
+    expect(d.audit.filter((a) => a.action === "position.assign")).toHaveLength(
+      1,
+    );
+  });
+  it("a member holding a position cannot be given a second (remove first); inactive members cannot be assigned", async () => {
+    await as("IL1001");
+    await expect(s.positions.assign("saa", "mem-1002")).rejects.toMatchObject({
+      code: "INVALID_STATE",
+      message: expect.stringContaining("already holds"),
+    });
+    await expect(s.positions.assign("saa", "mem-1015")).rejects.toMatchObject({
+      code: "VALIDATION",
+    });
+  });
+  it("removing a holder leaves the position vacant; the demoted member loses ExComm tasks", async () => {
+    await as("IL1001");
+    expect(
+      (await s.positions.list()).items.find((i) => i.code === "treasurer")
+        ?.memberId,
+    ).toBe("mem-1006");
+    await s.positions.assign("treasurer", null);
+    expect(holder("treasurer")).toBeNull();
+    expect(
+      store.getState().members.find((m) => m.id === "mem-1006")?.accountType,
+    ).toBe("member");
+    expect(
+      store
+        .getState()
+        .tasks.some(
+          (t) =>
+            t.memberId === "mem-1006" &&
+            ["T-02", "T-08"].includes(t.code) &&
+            !t.doneAt,
+        ),
+    ).toBe(false);
+    await s.positions.assign("treasurer", "mem-1009");
+    expect(holder("treasurer")).toBe("mem-1009");
+    expect(store.getState().audit.map((a) => a.action)).toEqual(
+      expect.arrayContaining(["position.remove", "position.assign"]),
+    );
+  });
+  it("replacing the VPE hands the pending level verification to the new VPE", async () => {
+    await as("IL1001");
+    await s.positions.assign("vpe", "mem-1009");
+    const t = store
+      .getState()
+      .tasks.filter((x) => x.code === "T-03" && !x.doneAt);
+    expect(t.map((x) => x.memberId)).toEqual(["mem-1009"]);
+    await s.auth.signOut();
+    await as("IL1009");
+    expect(await code(s.progress.decide("cmp-001", "verify"))).toBe("ok");
+  });
+  it("the President row cannot be assigned directly", async () => {
+    await as("IL1001");
+    expect(await code(s.positions.assign("president", "mem-1009"))).toBe(
+      "INVALID_STATE",
+    );
+    expect(await code(s.positions.assign("president", null))).toBe(
+      "INVALID_STATE",
+    );
+  });
+  it("next President then transfer: exactly one President before and after; old President is a plain Member", async () => {
+    await as("IL1001");
+    expect(presidents()).toHaveLength(1);
+    expect(await code(s.positions.transfer())).toBe("INVALID_STATE"); // nobody named yet
+    await expect(
+      s.positions.setNextPresident("mem-1001"),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      s.positions.setNextPresident("mem-1015"),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await s.positions.setNextPresident("mem-1002"); // Priya, who is VPE
+    expect((await s.positions.list()).nextPresidentName).toBe("Priya Raman");
+    await s.positions.transfer();
+    expect(presidents().map((m) => m.id)).toEqual(["mem-1002"]);
+    const d = store.getState();
+    expect(d.positions.find((p) => p.code === "president")?.memberId).toBe(
+      "mem-1002",
+    );
+    expect(d.positions.find((p) => p.code === "vpe")?.memberId).toBeNull(); // her old seat is vacant
+    expect(d.members.find((m) => m.id === "mem-1001")).toMatchObject({
+      accountType: "member",
+    });
+    expect(d.positions.filter((p) => p.memberId === "mem-1001")).toEqual([]);
+    expect(d.settings.nextPresidentId).toBeNull();
+    expect(d.audit.at(-1)?.action).toBe("president.transfer");
+    expect(
+      d.notifications
+        .filter((n) => n.code === "N-11")
+        .map((n) => n.memberId)
+        .sort(),
+    ).toEqual(["mem-1001", "mem-1002"]);
+    // the old President has lost the President's powers at once
+    expect(await code(s.positions.assign("saa", "mem-1009"))).toBe("FORBIDDEN");
+    await s.auth.signOut();
+    await as("IL1002");
+    expect(await code(s.positions.assign("vpe", "mem-1009"))).toBe("ok");
+    expect(presidents()).toHaveLength(1);
+  });
+  it("removing the next President clears the setting", async () => {
+    await as("IL1001");
+    await s.positions.setNextPresident("mem-1009");
+    await s.members.remove("mem-1009");
+    expect((await s.positions.list()).nextPresidentId).toBeNull();
+    await s.positions.setNextPresident("mem-1010");
+    await s.positions.setNextPresident(null);
+    expect((await s.positions.list()).nextPresidentId).toBeNull();
+  });
+});

@@ -511,3 +511,19 @@ export const n08TemplateAdded = (
       dedupeKey: `N-08:${key}`,
     }),
   );
+
+/** N-11: a position was assigned or removed (flow.md section 7). Links to Home. */
+export const n11Position = (
+  d: EventData,
+  at: Date,
+  memberId: string,
+  title: string,
+  key: string,
+) =>
+  notify(d, at, {
+    memberId,
+    code: "N-11",
+    title,
+    link: "/home",
+    dedupeKey: `N-11:${key}:${memberId}`,
+  });

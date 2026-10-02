@@ -3,12 +3,11 @@ import {
   auditService,
   authService,
   devService,
-  membersService,
   notificationsService,
-  positionsService,
   tasksService,
 } from "./core.service";
 import { meetingsService } from "./meetings.service";
+import { membersService, positionsService } from "./members.service";
 import { templatesService } from "./templates.service";
 import { progressService } from "./progress.service";
 import { reportsService } from "./reports.service";

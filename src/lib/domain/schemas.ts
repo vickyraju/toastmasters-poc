@@ -285,3 +285,34 @@ export const themeInput = z.object({
 });
 export type ThemeForm = z.input<typeof themeInput>;
 export type ThemeValues = z.output<typeof themeInput>;
+
+// Members (S-11, S-12). The employee id is fixed after creation, and a member's level changes only when a
+// level completion is verified (FR-35), so edits never carry either.
+const emailField = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email("Enter a valid email address");
+export const memberAddInput = z.object({
+  employeeId: z
+    .string()
+    .trim()
+    .min(1, "Enter the employee ID")
+    .max(20)
+    .transform((v) => v.toUpperCase()),
+  name: trimmed(80).min(1, "Enter a name"),
+  email: emailField,
+  toastmastersId: optionalText(40),
+  pathway: optionalText(80),
+  currentLevel: z.coerce.number().int().min(1).max(5).default(1),
+});
+export const memberEditInput = z.object({
+  name: trimmed(80).min(1, "Enter a name"),
+  email: emailField,
+  toastmastersId: optionalText(40),
+  pathway: optionalText(80),
+});
+export type MemberAddForm = z.input<typeof memberAddInput>;
+export type MemberAddValues = z.output<typeof memberAddInput>;
+export type MemberEditForm = z.input<typeof memberEditInput>;
+export type MemberEditValues = z.output<typeof memberEditInput>;

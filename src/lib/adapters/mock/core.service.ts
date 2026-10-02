@@ -3,8 +3,6 @@ import type {
   AuditService,
   AuthService,
   DevService,
-  MembersService,
-  PositionsService,
   NotificationsService,
   TasksService,
   CurrentUser,
@@ -77,26 +75,6 @@ export function authService({ store, call }: Ctx): AuthService {
         },
         { bypassError: true },
       ),
-  };
-}
-
-export function membersService({ store, call }: Ctx): MembersService {
-  return {
-    list: () =>
-      call((sid) => {
-        const d = store.getState();
-        assertCan(me(d, sid).actor, "member.view_directory");
-        return d.members.filter((m) => m.status !== "removed");
-      }),
-    get: (id) =>
-      call((sid) => {
-        const d = store.getState();
-        const { actor } = me(d, sid);
-        if (actor.id !== id) assertCan(actor, "member.view_directory");
-        const m = d.members.find((x) => x.id === id);
-        if (!m) throw new AppError("NOT_FOUND", "Member not found.");
-        return m;
-      }),
   };
 }
 
@@ -255,27 +233,5 @@ export function devService({ store, call }: Ctx): DevService {
         now: now().toISOString(),
         simulateError: store.getState().dev.simulateError,
       })),
-  };
-}
-
-export function positionsService({ store, call }: Ctx): PositionsService {
-  return {
-    list: () =>
-      call((sid) => {
-        const d = store.getState();
-        // S-13 is President only (flow.md section 2)
-        assertCan(me(d, sid).actor, "position.assign");
-        const nameOf = (id: string | null) =>
-          id ? (d.members.find((m) => m.id === id)?.name ?? null) : null;
-        return {
-          items: d.positions.map((p) => ({
-            code: p.code,
-            memberId: p.memberId,
-            memberName: nameOf(p.memberId),
-          })),
-          nextPresidentId: d.settings.nextPresidentId,
-          nextPresidentName: nameOf(d.settings.nextPresidentId),
-        };
-      }),
   };
 }
