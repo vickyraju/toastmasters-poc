@@ -39,6 +39,7 @@ export function useSignIn() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (employeeId: string) => getServices().auth.signIn(employeeId),
+    meta: { silent: true }, // the sign-in form shows the error itself
     onSuccess: (user) => {
       qc.clear();
       qc.setQueryData(qk.me, user);

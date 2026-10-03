@@ -62,7 +62,6 @@ export function useMarkAllRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => getServices().notifications.markAllRead(),
-    onError: (e) => toast.error(e.message),
     onSettled: () => qc.invalidateQueries({ queryKey: qk.notifications }),
   });
 }

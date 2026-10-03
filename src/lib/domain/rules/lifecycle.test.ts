@@ -7,10 +7,11 @@ const base = {
   slotCount: 12,
   openSlots: 0,
   endsAt: ends,
-  now: new Date("2026-10-03T00:00:00Z"),
+  now: new Date("2026-10-02T10:00:00Z"), // before the meeting ends
   missingReports: 0,
   reason: null as string | null,
 };
+const after = { now: new Date("2026-10-03T00:00:00Z") };
 const check = (
   from: Parameters<typeof lifecycleCheck>[0]["from"],
   to: Parameters<typeof lifecycleCheck>[0]["to"],
@@ -22,7 +23,10 @@ describe("R-07 lifecycleCheck", () => {
     expect(check("draft", "open")).toEqual({ ok: true, warnings: [] });
     expect(check("open", "finalized")).toEqual({ ok: true, warnings: [] });
     expect(check("finalized", "open")).toEqual({ ok: true, warnings: [] });
-    expect(check("finalized", "completed")).toEqual({ ok: true, warnings: [] });
+    expect(check("finalized", "completed", after)).toEqual({
+      ok: true,
+      warnings: [],
+    });
     for (const from of ["draft", "open", "finalized"] as const) {
       expect(check(from, "cancelled", { reason: "Holiday" })).toEqual({
         ok: true,
@@ -70,10 +74,26 @@ describe("R-07 lifecycleCheck", () => {
         now: new Date("2026-10-02T11:59:59Z"),
       }),
     ).toEqual({ ok: false, reason: "NOT_ENDED" });
-    expect(check("finalized", "completed", { missingReports: 2 })).toEqual({
+    expect(
+      check("finalized", "completed", { ...after, missingReports: 2 }),
+    ).toEqual({
       ok: true,
       warnings: ["MISSING_REPORTS"],
     });
+  });
+  it("a meeting that has already ended cannot be opened, finalized or reopened", () => {
+    for (const [from, to] of [
+      ["draft", "open"],
+      ["open", "finalized"],
+      ["finalized", "open"],
+    ] as const)
+      expect(check(from, to, after)).toEqual({
+        ok: false,
+        reason: "ALREADY_ENDED",
+      });
+    // it can still be completed or cancelled
+    expect(check("finalized", "completed", after).ok).toBe(true);
+    expect(check("open", "cancelled", { ...after, reason: "x" }).ok).toBe(true);
   });
   it("Cancel needs a reason", () => {
     expect(check("open", "cancelled", { reason: "  " })).toEqual({

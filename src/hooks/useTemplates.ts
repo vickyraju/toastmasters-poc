@@ -89,8 +89,8 @@ export const useOpenAllDrafts = () =>
     () => getServices().meetings.openAllDrafts(),
     (_a, r) =>
       r.opened
-        ? `${r.opened} ${r.opened === 1 ? "meeting" : "meetings"} opened for roles.${r.skipped ? ` ${r.skipped} skipped: add a venue or link first.` : ""}`
+        ? `${r.opened} ${r.opened === 1 ? "meeting" : "meetings"} opened for roles.${r.skipped ? ` ${r.skipped} skipped: each needs a venue or link, or has already ended.` : ""}`
         : r.skipped
-          ? `Nothing opened. ${r.skipped} ${r.skipped === 1 ? "draft needs" : "drafts need"} a venue or link first.`
+          ? `Nothing opened. ${r.skipped} ${r.skipped === 1 ? "draft needs" : "drafts need"} a venue or link, or already ${r.skipped === 1 ? "has" : "have"} ended.`
           : "There are no drafts to open.",
   );

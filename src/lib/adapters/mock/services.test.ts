@@ -2199,3 +2199,25 @@ describe("member CSV import (flow.md J-10 step 1)", () => {
     ).toBe("=1+1");
   });
 });
+
+const NOW_FOR_ENDED = Date.parse("2026-10-02T19:00:00+05:30");
+describe("R-07: a meeting that has already ended", () => {
+  it("cannot be finalized or opened, only completed or cancelled", async () => {
+    const store = createMockStore(NOW_FOR_ENDED);
+    const svc = createMockServices({
+      store,
+      delayMs: 0,
+      clock: () => NOW_FOR_ENDED,
+    });
+    await svc.auth.signIn("IL1003");
+    // 2 Oct meeting is Open; the clock is after it ends
+    await expect(
+      svc.meetings.setStatus("mtg-2026-10-02", "finalized"),
+    ).rejects.toMatchObject({
+      code: "INVALID_STATE",
+      message: "This meeting has already ended. Mark it completed instead.",
+    });
+    // drafts dated after the clock still open
+    expect(await svc.meetings.openAllDrafts()).toMatchObject({ skipped: 0 });
+  });
+});

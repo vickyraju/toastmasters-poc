@@ -123,13 +123,24 @@ export function MeetingsPage() {
         {isOfficer ? (
           <div className="flex gap-2 lg:ml-auto">
             {draftCount > 0 ? (
-              <Button
-                variant="outline"
-                disabled={openAll.isPending}
-                onClick={() => setConfirmOpenAll(true)}
-              >
-                Open all drafts
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setStatus("draft");
+                    setView("list");
+                  }}
+                >
+                  View {draftCount} {draftCount === 1 ? "draft" : "drafts"}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={openAll.isPending}
+                  onClick={() => setConfirmOpenAll(true)}
+                >
+                  Open all drafts for roles
+                </Button>
+              </>
             ) : null}
             <Button asChild variant="outline">
               <Link href="/meetings/templates">Templates</Link>
@@ -165,8 +176,8 @@ export function MeetingsPage() {
           open
           onOpenChange={(o) => !o && setConfirmOpenAll(false)}
           title="Open all drafts for roles?"
-          description={`${draftCount} draft ${draftCount === 1 ? "meeting opens" : "meetings open"} and every member is notified once per meeting. A draft with no venue or link stays a draft.`}
-          confirmLabel="Open all drafts"
+          description={`${draftCount} draft ${draftCount === 1 ? "meeting opens" : "meetings open"} and every member is notified once per meeting. A draft with no venue or link, or one whose date has passed, stays a draft.`}
+          confirmLabel="Open for roles"
           busy={openAll.isPending}
           onConfirm={() =>
             openAll.mutate(undefined, {

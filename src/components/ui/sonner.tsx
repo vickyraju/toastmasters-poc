@@ -16,6 +16,13 @@ const Toaster = (props: ToasterProps) => (
     position="top-right"
     duration={6000}
     className="toaster group"
+    toastOptions={{
+      classNames: {
+        error:
+          "!border-danger/40 !bg-danger-bg !text-danger [&_[data-icon]]:!text-danger",
+        success: "!border-success/40 !bg-success-bg !text-success",
+      },
+    }}
     icons={{
       success: <CircleCheckIcon className="size-4" />,
       info: <InfoIcon className="size-4" />,

@@ -32,8 +32,11 @@ export const useSavePrefs = () =>
 
 /** Runs the export. The page decides what to tell the user: nothing to download, or the file name. */
 export const useRunExport = () =>
-  useAction((a: { kind: ExportKind; from: string; to: string }) =>
-    getServices().exports.csv(a.kind, { from: a.from, to: a.to }),
+  useAction(
+    (a: { kind: ExportKind; from: string; to: string }) =>
+      getServices().exports.csv(a.kind, { from: a.from, to: a.to }),
+    undefined,
+    { silent: true }, // the Export page words its own message
   );
 
 export function useClubSettings() {

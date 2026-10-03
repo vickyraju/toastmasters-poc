@@ -10,6 +10,7 @@ export type LifecycleResult =
         | "NO_VENUE_OR_LINK"
         | "NO_ROLES"
         | "NOT_ENDED"
+        | "ALREADY_ENDED"
         | "REASON_REQUIRED";
     };
 
@@ -36,6 +37,12 @@ export function lifecycleCheck(input: {
   const { from, to } = input;
   if (!ALLOWED[from].includes(to)) return { ok: false, reason: "NOT_ALLOWED" };
   const warnings: LifecycleWarning[] = [];
+  // Opening or finalizing only makes sense before the meeting is over; after that the path is Completed.
+  if (
+    (to === "open" || to === "finalized") &&
+    input.now.getTime() >= input.endsAt.getTime()
+  )
+    return { ok: false, reason: "ALREADY_ENDED" };
   if (from === "draft" && to === "open") {
     if (!input.hasVenueOrLink) return { ok: false, reason: "NO_VENUE_OR_LINK" };
     if (input.slotCount === 0) return { ok: false, reason: "NO_ROLES" };

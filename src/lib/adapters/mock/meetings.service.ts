@@ -67,6 +67,10 @@ function transition(
       ],
       NO_ROLES: ["VALIDATION", "Add at least one role before opening."],
       NOT_ENDED: ["INVALID_STATE", "The meeting has not ended yet."],
+      ALREADY_ENDED: [
+        "INVALID_STATE",
+        "This meeting has already ended. Mark it completed instead.",
+      ],
       REASON_REQUIRED: ["VALIDATION", "Give a reason for cancelling."],
     }[check.reason] as [ConstructorParameters<typeof AppError>[0], string];
     throw new AppError(
